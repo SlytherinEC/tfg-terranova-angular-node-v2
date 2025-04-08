@@ -35,24 +35,27 @@
   transform: translateZ(50px);
 }
 
+.face-6 {
+  transform: rotateY(180deg) translateZ(50px);
+  /* Opuesta a la 1 */
+}
+
 .face-2 {
-  transform: rotateY(90deg) translateZ(50px);
-}
-
-.face-3 {
-  transform: rotateX(-90deg) translateZ(50px);
-}
-
-.face-4 {
-  transform: rotateX(90deg) translateZ(50px);
-}
-
-.face-5 {
   transform: rotateY(-90deg) translateZ(50px);
 }
 
-.face-6 {
-  transform: rotateY(180deg) translateZ(50px);
+.face-5 {
+  transform: rotateY(90deg) translateZ(50px);
+  /* Opuesta a la 2 */
+}
+
+.face-3 {
+  transform: rotateX(90deg) translateZ(50px);
+}
+
+.face-4 {
+  transform: rotateX(-90deg) translateZ(50px);
+  /* Opuesta a la 3 */
 }
 
 /* Puntos del dado */
@@ -62,6 +65,10 @@
   border-radius: 50%;
   background-color: black;
   display: block;
+}
+
+.face {
+  position: absolute;
 }
 
 /* Posiciones de los puntos */
