@@ -1,7 +1,8 @@
 <!-- dice.component.html -->
 <div class="dice-container">
   <div class="dice" [@diceAnimation]="{ value: resultado, params: { x: rotateX, y: rotateY } }"
-       [style.transform]="'rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg)'">
+    [style.transform]="'rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg)'">
+    <!-- Las caras siguen el estándar de dados donde las caras opuestas suman 7 -->
     <div class="face face-1">
       <span class="dot center"></span>
     </div>
