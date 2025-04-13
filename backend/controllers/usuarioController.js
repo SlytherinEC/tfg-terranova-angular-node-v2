@@ -3,14 +3,23 @@ const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 
 const registrarUsuario = async (req, res) => {
+
+  console.log('[DEBUG] req.body:', req.body);
+
   try {
     const { nombre, email, contrasena } = req.body;
+
     if (!nombre || !email || !contrasena) {
       return res.status(400).json({ message: 'Faltan campos requeridos' });
     }
 
-    const existente = await Usuario.findByEmail(email);
-    if (existente) {
+    const existentePorNombre = await Usuario.findByNombre(nombre);
+    if (existentePorNombre) {
+      return res.status(409).json({ message: 'El nombre de usuario ya existe' });
+    }
+
+    const existentePorEmail = await Usuario.findByEmail(email);
+    if (existentePorEmail) {
       return res.status(409).json({ message: 'El email ya está registrado' });
     }
 
