@@ -1,0 +1,171 @@
+/* dice.component.css */
+.dice-container {
+  width: 100px;
+  height: 100px;
+  margin: 100px auto;
+  perspective: 1000px;
+}
+
+.dice {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1.5s ease-out;
+  margin: 0 auto;
+}
+
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #000;
+  border-radius: 10px;
+  background-color: #D4D6B1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  // flex-wrap: wrap;
+  padding: 10px;
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+}
+
+/* Posición de cada cara del dado */
+.face-1 {
+  transform: translateZ(50px);
+}
+
+.face-6 {
+  transform: rotateY(180deg) translateZ(50px);
+  /* Opuesta a la 1 */
+}
+
+.face-2 {
+  transform: rotateY(-90deg) translateZ(50px);
+}
+
+.face-5 {
+  transform: rotateY(90deg) translateZ(50px);
+  /* Opuesta a la 2 */
+}
+
+.face-3 {
+  transform: rotateX(90deg) translateZ(50px);
+}
+
+.face-4 {
+  transform: rotateX(-90deg) translateZ(50px);
+  /* Opuesta a la 3 */
+}
+
+/* Puntos del dado */
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: black;
+  // display: block;
+  position: absolute;
+}
+
+/* Posiciones de los puntos */
+.center {
+  // align-self: center;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.top-left {
+  // align-self: flex-start;
+  // margin-right: auto;
+  transform: translate(-50%, -50%);
+  left: 20%;
+  top: 20%;
+}
+
+.top-right {
+  // align-self: flex-start;
+  // margin-left: auto;
+  transform: translate(-50%, -50%);
+  left: 80%;
+  top: 20%;
+}
+
+.middle-left {
+  transform: translate(-50%, -50%);
+  left: 20%;
+  top: 50%;
+}
+
+.middle-right {
+  transform: translate(-50%, -50%);
+  left: 80%;
+  top: 50%;
+}
+
+.bottom-left {
+  transform: translate(-50%, -50%);
+  left: 20%;
+  top: 80%;
+}
+
+.bottom-right {
+  transform: translate(-50%, -50%);
+  left: 80%;
+  top: 80%;
+}
+
+/* Controles */
+.controls {
+  text-align: center;
+  margin-top: 50px;
+}
+
+button {
+  padding: 10px 30px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  
+  /* Forma octagonal simétrica */
+  clip-path: polygon(
+    20% 0%,    /* Corte superior izquierdo */
+    80% 0%,    /* Corte superior derecho */
+    100% 20%,  /* Corte derecho superior */
+    100% 80%,  /* Corte derecho inferior */
+    80% 100%,  /* Corte inferior derecho */
+    20% 100%,  /* Corte inferior izquierdo */
+    0% 80%,    /* Corte izquierdo inferior */
+    0% 20%     /* Corte izquierdo superior */
+  );
+  
+  -webkit-clip-path: polygon(
+    10% 0%,
+    80% 0%,
+    100% 20%,
+    100% 80%,
+    80% 100%,
+    20% 100%,
+    0% 80%,
+    0% 20%
+  );
+}
+button:hover {
+  background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
