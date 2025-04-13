@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Usuario } from './usuario';
 
 @Injectable({
@@ -15,7 +15,7 @@ export class AuthService {
   // Métodos para registrar un nuevo usuario
   registro(usuario: Usuario): Observable<any> {
     return this.http.post(`${this.apiUrl}/registro`, {
-      nombre: usuario.nombreUsuario,
+      nombre: usuario.nombre,
       email: usuario.email,
       contrasena: usuario.contrasena
     });
