@@ -1,22 +1,23 @@
 <section class="login-container">
-  <h1 class="text-3xl font-bold underline">
-   Iniciar sesión
-  </h1>
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-    <div>
-      <label for="email">Email</label>
-      <input id="email" type="email" formControlName="email" />
-      <small *ngIf="f['email'].touched && f['email'].invalid">Email inválido</small>
-    </div>
+  <div class="login-form-container">
+    <h1 class="login-title">INICIAR SESIÓN</h1>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="email" class="form-label">CORREO ELECTRÓNICO</label>
+        <input id="email" type="email" formControlName="email" class="form-input" />
+        <small *ngIf="f['email'].touched && f['email'].invalid" class="error-text">Email inválido</small>
+      </div>
 
-    <div>
-      <label for="contrasena">Contraseña</label>
-      <input id="contrasena" type="password" formControlName="contrasena" />
-      <small *ngIf="f['contrasena'].touched && f['contrasena'].invalid">Campo obligatorio</small>
-    </div>
+      <div class="form-group">
+        <label for="contrasena" class="form-label">CONTRASEÑA</label>
+        <input id="contrasena" type="password" formControlName="contrasena" class="form-input" />
+        <small *ngIf="f['contrasena'].touched && f['contrasena'].invalid" class="error-text">Campo obligatorio</small>
+      </div>
 
-    <button type="submit" [disabled]="loginForm.invalid">Entrar</button>
+      <button type="submit" [disabled]="loginForm.invalid" class="submit-button">ACCEDER</button>
 
-    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-  </form>
+      <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+    </form>
+  </div>
 </section>

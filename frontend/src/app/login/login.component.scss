@@ -12,4 +12,91 @@
     background-position: center;
     background-repeat: no-repeat;
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #FFD54F; /* Color dorado para el texto */
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .login-form-container {
+    background-color: rgba(10, 25, 47, 0.85);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 213, 79, 0.3);
+    padding: 2.5rem;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .login-title {
+    font-size: 2.2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #FFD54F;
+    letter-spacing: 1px;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #FFD54F;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #1A2A40;
+    border-radius: 6px;
+    background-color: #1A2A40;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+  
+    &:focus {
+      border-color: #FFD54F;
+    }
+  }
+  
+  .submit-button {
+    width: 100%;
+    padding: 0.9rem;
+    margin-top: 1rem;
+    border: none;
+    border-radius: 6px;
+    background-color: #FFD54F;
+    color: #0A192F;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  
+    &:hover {
+      background-color: #FFB300;
+    }
+  
+    &:disabled {
+      background-color: #6B7280;
+      cursor: not-allowed;
+    }
+  }
+  
+  .error-text {
+    color: #EF4444;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+  }
+  
+  .error-message {
+    color: #EF4444;
+    text-align: center;
+    margin-top: 1rem;
   }
