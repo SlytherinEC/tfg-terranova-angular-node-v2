@@ -1,39 +1,41 @@
 <section class="registro-container">
-  <h2>Registro</h2>
+  <div class="registro-form-container">
+    <h2 class="registro-title">REGISTRO</h2>
+    
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="nombre" class="form-label">NOMBRE</label>
+        <input id="nombre" type="text" formControlName="nombre" class="form-input" />
+        <small *ngIf="f['nombre'].touched && f['nombre'].invalid" class="error-text">Debe tener al menos 3 caracteres</small>
+      </div>
 
-  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-    <div>
-      <label for="nombre">Nombre</label>
-      <input id="nombre" type="text" formControlName="nombre" />
-      <small *ngIf="f['nombre'].touched && f['nombre'].invalid">Debe tener al menos 3 caracteres</small>
-    </div>
+      <div class="form-group">
+        <label for="email" class="form-label">CORREO ELECTRÓNICO</label>
+        <input id="email" type="email" formControlName="email" class="form-input" />
+        <small *ngIf="f['email'].touched && f['email'].invalid" class="error-text">Email inválido</small>
+      </div>
 
-    <div>
-      <label for="email">Email</label>
-      <input id="email" type="email" formControlName="email" />
-      <small *ngIf="f['email'].touched && f['email'].invalid">Email inválido</small>
-    </div>
+      <div class="form-group">
+        <label for="contrasena" class="form-label">CONTRASEÑA</label>
+        <input id="contrasena" type="password" formControlName="contrasena" class="form-input" />
+        <small *ngIf="f['contrasena'].touched && f['contrasena'].invalid" class="error-text">Debe tener al menos 6 caracteres</small>
+      </div>
 
-    <div>
-      <label for="contrasena">Contraseña</label>
-      <input id="contrasena" type="password" formControlName="contrasena" />
-      <small *ngIf="f['contrasena'].touched && f['contrasena'].invalid">Debe tener al menos 6 caracteres</small>
-    </div>
+      <div class="form-group">
+        <label for="confirmarContrasena" class="form-label">REPETIR CONTRASEÑA</label>
+        <input id="confirmarContrasena" type="password" formControlName="confirmarContrasena" class="form-input" />
+        <small *ngIf="f['confirmarContrasena'].touched && f['confirmarContrasena'].hasError('required')" class="error-text">
+          Campo obligatorio
+        </small>
+        <small *ngIf="f['confirmarContrasena'].touched && f['confirmarContrasena'].hasError('noCoincide')" class="error-text">
+          Las contraseñas no coinciden
+        </small>
+      </div>
 
-    <div>
-      <label for="confirmarContrasena">Repetir Contraseña</label>
-      <input id="confirmarContrasena" type="password" formControlName="confirmarContrasena" />
-      <small *ngIf="f['confirmarContrasena'].touched && f['confirmarContrasena'].hasError('required')">
-        Campo obligatorio
-      </small>
-      <small *ngIf="f['confirmarContrasena'].touched && f['confirmarContrasena'].hasError('noCoincide')">
-        Las contraseñas no coinciden
-      </small>
-    </div>
+      <button type="submit" [disabled]="registerForm.invalid" class="submit-button">REGISTRARSE</button>
 
-    <button type="submit" [disabled]="registerForm.invalid">Registrarse</button>
-
-    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-    <p *ngIf="registrado" class="exito">Registro exitoso. Redirigiendo...</p>
-  </form>
+      <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+      <p *ngIf="registrado" class="success-message">Registro exitoso. Redirigiendo...</p>
+    </form>
+  </div>
 </section>
