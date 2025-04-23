@@ -9,13 +9,21 @@ import { Router } from '@angular/router';
   styleUrl: './home.component.scss'
 })
 export class HomeComponent {
-  constructor(private router: Router) {}
 
-  navigateToRegister(): void {
+  constructor(private router: Router) { }
+
+  navigateToLogin() {
+    this.router.navigate(['/login']);
+  }
+
+  navigateToRegister() {
     this.router.navigate(['/register']);
   }
 
-  navigateToLogin(): void {
-    this.router.navigate(['/login']);
+  playAsGuest() {
+    // Implementa la lógica para jugar como invitado
+    // Por ejemplo:
+    // this.authService.loginAsGuest();
+    this.router.navigate(['/game']);
   }
 }
