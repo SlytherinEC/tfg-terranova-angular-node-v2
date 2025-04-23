@@ -1,13 +1,29 @@
 <div class="title-screen-container">
   <div class="content">
-    <!-- Aquí irá tu logo -->
-    <img src="assets/images/terranova-logo.png" alt="Logo del juego" class="logo">
+    <div class="title-area">
+      <h1 class="main-title">TERRANOVA</h1>
+      <h2 class="subtitle">UN JUEGO SOLITARIO DE SUPERVIVENCIA ESPACIAL</h2>
+    </div>
 
-    <!-- Botones de login, registro, etc. -->
+    <div class="system-messages">
+      <p class="message">Forma de vida alienígena hostil detectada...</p>
+      <p class="message">Procediendo a descongelar pasajeros...</p>
+      <p class="message">Formas de vida humanas: 7</p>
+      <p class="message">Dirigirse inmediatamente a las cápsulas de escape...</p>
+      <p class="message">Alerta del sistema: puerta de la bahía de escape bloqueada.</p>
+      <p class="message">Inserte los códigos de activación para desbloquearla.</p>
+    </div>
+
     <div class="buttons-container">
-      <button class="pixel-button">INICIAR SESIÓN</button>
-      <button class="pixel-button">REGISTRARSE</button>
-      <!-- Otros botones -->
+      <button class="pixel-button" (click)="navigateToLogin()">
+        INICIAR<br>SESIÓN
+      </button>
+      <button class="pixel-button" (click)="navigateToRegister()">
+        REGISTRARSE
+      </button>
+      <button class="pixel-button" (click)="playAsGuest()">
+        JUGAR COMO<br>INVITADO
+      </button>
     </div>
   </div>
 </div>

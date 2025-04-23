@@ -4,7 +4,7 @@
     height: 100%;
   }
   
-  .registro-container {
+  .login-container {
     width: 100%;
     height: 100vh;
     background-image: url('../../assets/images/Fondo.jpeg');
@@ -15,25 +15,25 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #FFD54F;
+    color: #FFD54F; /* Color dorado para el texto */
     font-family: 'Arial', sans-serif;
   }
   
-  .registro-form-container {
+  .login-form-container {
     background-color: rgba(10, 25, 47, 0.85);
-    border-radius: 10px;
+    border-radius: 12px;
     border: 2px solid rgba(255, 213, 79, 0.3);
-    padding: 1.5rem;
+    padding: 2.5rem;
     width: 90%;
     max-width: 450px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   }
   
-  .registro-title {
+  .login-title {
     font-size: 1.8rem;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 1.2rem;
+    margin-bottom: 2rem;
     color: #FFD54F;
     letter-spacing: 1px;
   }
@@ -100,12 +100,4 @@
     text-align: center;
     margin-top: 0.5rem;
     font-size: 0.8rem;
-  }
-  
-  .success-message {
-    color: #10B981;
-    text-align: center;
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: bold;
   }

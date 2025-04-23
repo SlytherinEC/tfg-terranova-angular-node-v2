@@ -1,22 +1,171 @@
 :host {
-    display: block;
-    width: 100%;
-    height: 100%;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@font-face {
+  font-family: 'PixelFont';
+  /* Puedes usar una fuente pixelada real como VT323, Press Start 2P, etc. */
+  /* Si necesitas importarla, añade esto en styles.scss o en el archivo de angular.json */
+  src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+}
+
+.title-screen-container {
+  width: 100%;
+  height: 100vh;
+  background-image: url('../../assets/images/home.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Courier New', monospace; /* Fuente temporal tipo consola */
+  color: #FFD54F;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title-area {
+  margin-bottom: 20px;
+}
+
+.main-title {
+  font-size: 2.5rem;
+  letter-spacing: 3px;
+  margin: 0;
+  font-weight: bold;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #FFD54F;
+  /* Efecto pixelado */
+  image-rendering: pixelated;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  margin: 0;
+  font-weight: normal;
+  color: #FFD54F;
+}
+
+.system-messages {
+  background-color: rgba(10, 25, 47, 0.4);
+  padding: 15px;
+  margin: 20px 0 30px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.message {
+  margin: 10px 0;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: #FFD54F;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.pixel-button {
+  min-width: 200px;
+  padding: 15px 10px;
+  font-size: 0.7rem;
+  color: #FFD54F;
+  background-color: rgba(10, 25, 47, 0.8);
+  border: 3px solid #1A7A7A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  // font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 
+    0 0 0 2px rgba(26, 122, 122, 0.2),
+    inset 0 0 0 1px rgba(255, 213, 79, 0.1);
+  position: relative;
+  
+  /* Efecto pixel */
+  image-rendering: pixelated;
+  
+  &:hover {
+    background-color: rgba(26, 122, 122, 0.6);
+    transform: scale(1.05);
   }
   
-  .title-screen-container {
-    width: 100%;
-    height: 100vh;
-    background-image: url('../../assets/images/home.jpeg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    position: relative;
+  &:active {
+    transform: scale(0.98);
   }
   
-  /* Para el contenido del componente (logo, botones, etc.) */
-  .content {
-    position: relative;
-    z-index: 1;
-    /* Aquí añadirás más estilos para organizar tu contenido */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 1px solid rgba(26, 122, 122, 0.7);
+    border-radius: 8px;
+    pointer-events: none;
   }
+}
+
+/* Media queries para adaptabilidad */
+@media (max-width: 768px) {
+  .main-title {
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    font-size: 0.7rem;
+  }
+  
+  .message {
+    font-size: 0.6rem;
+  }
+  
+  .pixel-button {
+    min-width: 150px;
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-title {
+    font-size: 1.4rem;
+  }
+  
+  .subtitle {
+    font-size: 0.6rem;
+  }
+  
+  .buttons-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .pixel-button {
+    width: 90%;
+  }
+}

@@ -1,4 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
 *{
     margin: 0;
     padding: 0;
@@ -10,4 +12,40 @@ html, body, app-root {
     height: 100%;
     overflow: hidden;
     position: fixed;
+}
+
+/* Importar fuente pixelada (añadir al archivo styles.scss) */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Si prefieres usar la fuente pixelada en todo el juego */
+* {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* O si prefieres aplicarla solo a ciertos elementos, elimina el selector universal de arriba 
+   y usa la clase .pixel-text donde quieras aplicarla */
+.pixel-text {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* Efecto de CRT para dar más ambiente de videojuego retro */
+.crt-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 10;
 }
