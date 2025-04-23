@@ -1,10 +1,10 @@
 <section class="login-container">
   <div class="login-form-container">
-    <h1 class="login-title">INICIAR SESIÓN</h1>
+    <h1 class="login-title">INICIAR SESION</h1>
     
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label for="email" class="form-label">CORREO ELECTRÓNICO</label>
+        <label for="email" class="form-label">CORREO ELECTRONICO</label>
         <input id="email" type="email" formControlName="email" class="form-input" />
         <small *ngIf="f['email'].touched && f['email'].invalid" class="error-text">Email inválido</small>
       </div>
