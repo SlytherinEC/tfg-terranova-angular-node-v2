@@ -1,3 +1,12 @@
-<button (click)="logout()">Salir</button>
+<div class="dashboard-container">
+  <div class="dashboard-content">
+    <div class="header">
+      <h1 class="dashboard-title">PANEL DE CONTROL</h1>
+      <button class="pixel-button logout-button" (click)="logout()">SALIR</button>
+    </div>
 
-<app-dice></app-dice>
+    <div class="game-content">
+      <app-dice></app-dice>
+    </div>
+  </div>
+</div>
