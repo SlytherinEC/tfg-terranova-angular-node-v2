@@ -17,7 +17,7 @@ export class DashboardComponent {
   async logout(): Promise<void> {
     try {
       await this.authService.cerrarSesion();
-      this.router.navigate(['/login']);
+      this.router.navigate(['/home']);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       
