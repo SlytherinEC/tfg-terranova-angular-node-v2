@@ -1,6 +1,6 @@
 const Admin = require('../models/Admin');
 const Usuario = require('../models/Usuario');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Obtener todos los usuarios
 const getUsuarios = async (req, res) => {
