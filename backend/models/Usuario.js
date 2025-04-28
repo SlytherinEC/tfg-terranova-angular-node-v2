@@ -22,8 +22,21 @@ const Usuario = {
   findByNombre: async (nombre) => {
     const [rows] = await db.query('SELECT * FROM usuarios WHERE nombre = ?', [nombre]);
     return rows[0];
-  }
+  },
 
+  findById: async (id) => {
+    try {
+      const [rows] = await db.query(
+        'SELECT id_usuario, nombre, email, id_rol, fecha_registro, image FROM usuarios WHERE id_usuario = ?',
+        [id]
+      );
+      return rows[0];
+    } catch (err) {
+      console.error('[ERROR] Fallo al buscar usuario por ID:', err.message);
+      throw err;
+    }
+  },
+  
 };
 
 module.exports = Usuario;

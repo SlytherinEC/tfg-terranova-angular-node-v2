@@ -37,5 +37,6 @@
       <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
       <p *ngIf="registrado" class="success-message">Registro exitoso. Redirigiendo...</p>
     </form>
+    <p class="error-message">¿Ya tienes cuenta? <a class="link-text" [routerLink]="'/login'">Inicia sesión aquí</a></p>
   </div>
 </section>

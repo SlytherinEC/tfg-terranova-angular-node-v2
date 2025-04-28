@@ -2,6 +2,8 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Usuario } from './usuario';
+import { TokenData } from './token-data';
+import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root'
@@ -52,6 +54,27 @@ export class AuthService {
     return new HttpHeaders({
       Authorization: `Bearer ${token}`
     })
+  }
+
+  obtenerDatosToken(): TokenData | null {
+    const token = this.obtenerToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      return jwtDecode<TokenData>(token);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Método para verificar si el usuario tiene rol de administrador
+  esAdmin(): boolean {
+    const datos = this.obtenerDatosToken();
+    return datos ? datos.id_rol === 1 : false;
+    //     return datos?.id_rol === 1;
+    // Si el token no es válido o no existe, se devuelve false
   }
 
 }

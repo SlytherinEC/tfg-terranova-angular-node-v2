@@ -1,131 +1,351 @@
 :host {
-    display: block;
-    width: 100%;
-    height: 100%;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-container {
+  width: 100%;
+  height: 100vh;
+  background-image: url('../../assets/images/Fondo.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  // font-family: 'Courier New', monospace;
+  color: #FFD54F;
+}
+
+.dashboard-content {
+  width: 90%;
+  max-width: 1200px;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  background-color: rgba(10, 25, 47, 0.8);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 2px solid rgba(26, 122, 122, 0.3);
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-title {
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  color: #FFD54F;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  margin: 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding-right: 1rem;
+}
+
+.profile-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #1A7A7A;
+  object-fit: cover;
+  background-color: #0A192F;
+}
+
+.user-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #FFD54F;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.menu-toggle {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(26, 122, 122, 0.3);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 2px solid rgba(26, 122, 122, 0.5);
+  position: relative;
+  min-width: 60px;
+  
+  &:hover {
+    background-color: rgba(26, 122, 122, 0.5);
   }
   
-  .dashboard-container {
-    width: 100%;
-    height: 100vh;
-    background-image: url('../../assets/images/Fondo.jpeg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    font-family: 'Courier New', monospace;
+  .menu-text {
+    margin-bottom: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: bold;
     color: #FFD54F;
+    letter-spacing: 1px;
+  }
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 20px;
+  height: 15px;
+  transition: all 0.3s;
+  
+  span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: #FFD54F;
+    border-radius: 2px;
+    transition: all 0.3s;
+    margin-bottom: 3px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
   
-  .dashboard-content {
-    width: 90%;
-    max-width: 1200px;
-    padding: 2rem;
-    position: relative;
-    z-index: 1;
+  &.open {
+    span:first-child {
+      transform: translateY(5px) rotate(45deg);
+    }
+    
+    span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    span:last-child {
+      transform: translateY(-5px) rotate(-45deg);
+    }
+  }
+}
+
+.navbar-container {
+  position: absolute;
+  top: 4.5rem;
+  right: 2rem;
+  z-index: 50;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  transform: translateY(-20px);
+  
+  &.show-navbar {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.navbar {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(10, 25, 47, 0.95);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 2px solid rgba(26, 122, 122, 0.3);
+  gap: 0.8rem;
+  min-width: 200px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+}
+
+.nav-button {
+  width: 100%;
+  text-align: center;
+}
+
+.pixel-button {
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 1.1rem;
+  color: #FFD54F;
+  background-color: rgba(10, 25, 47, 0.8);
+  border: 3px solid #1A7A7A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 
+    0 0 0 2px rgba(26, 122, 122, 0.2),
+    inset 0 0 0 1px rgba(255, 213, 79, 0.1);
+  position: relative;
+  // font-family: 'Courier New', monospace;
+  
+  /* Efecto pixel */
+  image-rendering: pixelated;
+  
+  &:hover {
+    background-color: rgba(26, 122, 122, 0.6);
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 1px solid rgba(26, 122, 122, 0.7);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+}
+
+.logout-button {
+  border-color: #f44336;
+  background-color: rgba(183, 28, 28, 0.3);
+  
+  &:hover {
+    background-color: rgba(183, 28, 28, 0.5);
+  }
+  
+  &::before {
+    border-color: rgba(183, 28, 28, 0.7);
+  }
+}
+
+.admin-button {
+  border-color: #B71C1C;
+  
+  &:hover {
+    background-color: rgba(183, 28, 28, 0.4);
+  }
+  
+  &::before {
+    border-color: rgba(183, 28, 28, 0.7);
+  }
+}
+
+.game-content {
+  background-color: rgba(10, 25, 47, 0.7);
+  border-radius: 8px;
+  padding: 2rem;
+  min-height: 400px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(26, 122, 122, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+/* Overlay para cerrar el menú al hacer clic fuera */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 40;
+  display: none;
+  
+  &.active {
+    display: block;
+  }
+}
+
+/* Media queries para adaptabilidad */
+@media (max-width: 768px) {
+  .dashboard-title {
+    font-size: 1.3rem;
   }
   
   .header {
-    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .user-info {
+    width: 100%;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
   }
   
-  .dashboard-title {
-    font-size: 2rem;
-    letter-spacing: 2px;
-    color: #FFD54F;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    margin: 0;
+  .navbar-container {
+    right: 1rem;
+    left: 1rem;
+    top: 8rem;
   }
   
-  .game-content {
-    background-color: rgba(10, 25, 47, 0.7);
-    border-radius: 8px;
-    padding: 2rem;
-    min-height: 400px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(26, 122, 122, 0.3);
+  .navbar {
+    width: 100%;
   }
   
   .pixel-button {
-    min-width: 120px;
-    padding: 10px 15px;
-    font-size: 1.1rem;
-    color: #FFD54F;
-    background-color: rgba(10, 25, 47, 0.8);
-    border: 3px solid #1A7A7A;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    box-shadow: 
-      0 0 0 2px rgba(26, 122, 122, 0.2),
-      inset 0 0 0 1px rgba(255, 213, 79, 0.1);
-    position: relative;
-    
-    /* Efecto pixel */
-    image-rendering: pixelated;
-    
-    &:hover {
-      background-color: rgba(26, 122, 122, 0.6);
-      transform: scale(1.05);
-    }
-    
-    &:active {
-      transform: scale(0.98);
-    }
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: -3px;
-      left: -3px;
-      right: -3px;
-      bottom: -3px;
-      border: 1px solid rgba(26, 122, 122, 0.7);
-      border-radius: 8px;
-      pointer-events: none;
-    }
+    font-size: 1rem;
+    padding: 8px 12px;
   }
   
-  .logout-button {
-    align-self: flex-start;
+  .dashboard-content {
+    padding: 1rem;
   }
   
-  /* Media queries para adaptabilidad */
-  @media (max-width: 768px) {
-    .dashboard-title {
-      font-size: 1.5rem;
-    }
-    
-    .pixel-button {
-      min-width: 100px;
-      font-size: 0.9rem;
-      padding: 8px 12px;
-    }
-    
-    .dashboard-content {
-      padding: 1rem;
-    }
-    
-    .game-content {
-      padding: 1rem;
-    }
+  .game-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.8rem;
   }
   
-  @media (max-width: 480px) {
-    .header {
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    .logout-button {
-      align-self: center;
-    }
+  .user-profile {
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-right: 0.6rem;
   }
+  
+  .dashboard-title {
+    font-size: 1.2rem;
+  }
+  
+  .user-name {
+    font-size: 0.9rem;
+  }
+  
+  .profile-image {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .menu-toggle {
+    padding: 0.4rem;
+    min-width: 50px;
+  }
+  
+  .pixel-button {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+  }
+  
+  .navbar-container {
+    top: 7rem;
+  }
+}

@@ -55,4 +55,17 @@ const loginUsuario = async (req, res) => {
   }
 };
 
-module.exports = { registrarUsuario, loginUsuario };
+const obtenerPerfil = async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.usuario.id_usuario); // nuevo método a crear
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.json(usuario);
+  } catch (error) {
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ message: 'Error al obtener perfil de usuario' });
+  }
+};
+
+module.exports = { registrarUsuario, loginUsuario, obtenerPerfil };
