@@ -2,6 +2,7 @@ import { Component, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiceComponent } from '../dice/dice.component';
 import { AuthService } from '../auth.service';
+import { UserService } from '../services/user.service';
 import { Router } from '@angular/router';
 import { TokenData } from '../token-data';
 
@@ -12,6 +13,7 @@ import { TokenData } from '../token-data';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
+
 export class DashboardComponent implements OnInit {
   userData: TokenData | null = null;
   nombreUsuario: string = '';
@@ -20,10 +22,11 @@ export class DashboardComponent implements OnInit {
   menuAbierto: boolean = false;
 
   constructor(
-    private authService: AuthService, 
+    private authService: AuthService,
+    private userService: UserService,
     private router: Router,
     private elementRef: ElementRef
-  ) { }
+  ) {}
 
   ngOnInit(): void {
     this.cargarDatosUsuario();
@@ -32,21 +35,27 @@ export class DashboardComponent implements OnInit {
   cargarDatosUsuario(): void {
     this.userData = this.authService.obtenerDatosToken();
     this.esAdmin = this.authService.esAdmin();
-    
-    // Aquí normalmente harías una petición al backend para obtener más datos del usuario
-    // como su nombre completo e imagen de perfil
+
     if (this.userData) {
-      this.obtenerNombreUsuario(this.userData.id_usuario);
+      this.obtenerDatosUsuario();
+    } else {
+      this.router.navigate(['/login']);
     }
   }
 
-  obtenerNombreUsuario(userId: number): void {
-    // En una implementación real, esta sería una llamada HTTP
-    // Por ahora, vamos a simular que obtenemos los datos
-    setTimeout(() => {
-      this.nombreUsuario = `Usuario_${userId}`;
-      this.imagenPerfil = `user_${userId}.png`;
-    }, 100);
+  obtenerDatosUsuario(): void {
+    this.userService.obtenerPerfil().subscribe({
+      next: (usuario) => {
+        this.nombreUsuario = usuario.nombre;
+        this.imagenPerfil = usuario.image || 'default_user.png';
+        this.esAdmin = usuario.id_rol === 1; // Actualizar rol en caso de cambios en el servidor
+      },
+      error: (err) => {
+        console.error('Error al obtener datos del usuario', err);
+        this.authService.cerrarSesion();
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   async logout(): Promise<void> {
@@ -60,20 +69,18 @@ export class DashboardComponent implements OnInit {
 
   navegarA(ruta: string): void {
     this.router.navigate([ruta]);
-    this.menuAbierto = false; // Cierra el menú después de navegar
+    this.menuAbierto = false;
   }
 
   toggleMenu(): void {
     this.menuAbierto = !this.menuAbierto;
   }
 
-  // Cierra el menú cuando se hace clic fuera de él
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    // Si se hace clic fuera del menú y del botón hamburguesa, cerrar el menú
-    const clickedInsideNavbar = this.elementRef.nativeElement.querySelector('.navbar').contains(event.target);
-    const clickedOnMenuToggle = this.elementRef.nativeElement.querySelector('.menu-toggle').contains(event.target);
-    
+    const clickedInsideNavbar = this.elementRef.nativeElement.querySelector('.navbar')?.contains(event.target);
+    const clickedOnMenuToggle = this.elementRef.nativeElement.querySelector('.menu-toggle')?.contains(event.target);
+
     if (this.menuAbierto && !clickedInsideNavbar && !clickedOnMenuToggle) {
       this.menuAbierto = false;
     }
