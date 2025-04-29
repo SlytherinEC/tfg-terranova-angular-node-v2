@@ -1,8 +1,8 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Usuario } from './usuario';
-import { TokenData } from './token-data';
+import { Usuario } from '../usuario';
+import { TokenData } from '../token-data';
 import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
