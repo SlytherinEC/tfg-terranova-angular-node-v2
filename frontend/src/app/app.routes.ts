@@ -16,5 +16,5 @@ export const routes: Routes = [
   { path: 'login', canActivate: [publicGuard], component: LoginComponent },
   { path: 'dashboard', canActivate: [authGuard], component: DashboardComponent },
   { path: 'admin', canActivate: [adminGuard], component: AdminComponent },
-  { path: 'no-autorizado', component: NoAutorizadoComponent },
+  { path: 'no-autorizado', canActivate: [authGuard], component: NoAutorizadoComponent },
 ];
