@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
+const { crearAccessToken, crearRefreshToken } = require('../utils/tokenUtils');
 
 const registrarUsuario = async (req, res) => {
 
@@ -42,18 +43,47 @@ const loginUsuario = async (req, res) => {
     const esValida = await bcrypt.compare(contrasena, usuario.contrasena);
     if (!esValida) return res.status(401).json({ message: 'Email o contraseña inválidos' });
 
-    const token = jwt.sign(
-      { id_usuario: usuario.id_usuario, id_rol: usuario.id_rol },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+    const payload = {
+      id_usuario: usuario.id_usuario,
+      id_rol: usuario.id_rol
+    };
 
-    res.status(200).json({ token });
+    const accessToken = crearAccessToken(payload);
+    const refreshToken = crearRefreshToken(payload);
+    
+    res.status(200).json({ accessToken, refreshToken });
 
   } catch (error) {
+    console.error('Error en loginUsuario:', error);
     res.status(500).json({ message: 'Error en el servidor', error: error.message });
   }
 };
+
+const refrescarToken = (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Token de refresco no proporcionado' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+    if (decoded.type !== 'refresh') {
+      return res.status(403).json({ message: 'Token de refresco inválido' });
+    }
+
+    const newAccessToken = crearAccessToken({
+      id_usuario: decoded.id_usuario,
+      id_rol: decoded.id_rol
+    });
+
+    res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    console.error('Error al refrescar token:', error.message);
+    return res.status(403).json({ message: 'Token de refresco inválido o expirado' });
+  }
+}
 
 const obtenerPerfil = async (req, res) => {
   try {
@@ -68,4 +98,4 @@ const obtenerPerfil = async (req, res) => {
   }
 };
 
-module.exports = { registrarUsuario, loginUsuario, obtenerPerfil };
+module.exports = { registrarUsuario, loginUsuario, obtenerPerfil, refrescarToken };
