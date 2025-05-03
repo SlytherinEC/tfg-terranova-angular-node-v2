@@ -32,7 +32,8 @@ export class LoginComponent {
 
     this.authService.login(email, contrasena).subscribe({
       next: (res) => {
-        this.authService.guardarToken(res.token);
+        this.authService.guardarToken(res.accessToken);
+        this.authService.guardarRefreshToken(res.refreshToken);
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {

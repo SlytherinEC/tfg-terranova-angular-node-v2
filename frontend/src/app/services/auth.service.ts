@@ -46,6 +46,7 @@ export class AuthService {
   // Método para cerrar sesión. Elimina el token de localStorage
   cerrarSesion(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   }
 
   // Método para obtener header con token JWT
@@ -75,6 +76,18 @@ export class AuthService {
     return datos ? datos.id_rol === 1 : false;
     //     return datos?.id_rol === 1;
     // Si el token no es válido o no existe, se devuelve false
+  }
+
+  guardarRefreshToken(token: string): void {
+    localStorage.setItem('refreshToken', token);
+  }
+
+  obtenerRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
+  }
+
+  getEnlaceApi(): string {
+    return this.apiUrl;
   }
 
 }
