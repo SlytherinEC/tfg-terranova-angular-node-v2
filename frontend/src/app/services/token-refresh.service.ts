@@ -1,12 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
 })
-export class TokenRefreshService {
+export class TokenRefreshService implements OnDestroy {
 
-  private readonly LIMITE_INACTIVIDAD_MS = 5 * 60 * 1000; // 15 minutos
+  private readonly LIMITE_INACTIVIDAD_MS = 15 * 60 * 1000; // 15 minutos
   private ultimaActividad: number = Date.now();
   private inactivityTimer: any;
 
@@ -14,7 +15,7 @@ export class TokenRefreshService {
   private refreshingToken = false;
   private refreshingTokenSubject = new BehaviorSubject<boolean>(false);
 
-  constructor() {
+  constructor(private router: Router) {
     this.iniciarMonitoreoInactividad();
   }
 
@@ -43,8 +44,21 @@ export class TokenRefreshService {
     // Revisar cada minuto si el usuario está inactivo
     this.inactivityTimer = setInterval(() => {
       if (!this.hayActividadReciente()) {
-        // Si el usuario está inactivo, no hacer nada y dejar que el interceptor maneje la expiración
         console.log('[TokenRefreshService] Usuario inactivo detectado');
+        
+        // Limpiar tokens del localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        
+        // Redirigir al login
+        this.router.navigate(['/login'], { 
+          queryParams: { 
+            reason: 'inactivity'
+          }
+        });
+        
+        // Opcional: Mostrar notificación o alerta
+        // Puedes implementar un servicio de notificaciones si lo deseas
       }
     }, 60000); // Revisar cada minuto
   }
