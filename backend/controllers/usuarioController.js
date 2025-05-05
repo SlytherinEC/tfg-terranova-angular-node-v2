@@ -99,4 +99,15 @@ const obtenerPerfil = async (req, res) => {
   }
 };
 
-module.exports = { registrarUsuario, loginUsuario, obtenerPerfil, refrescarToken };
+const actualizarPerfil = async (req, res) => {
+  const { id_usuario } = req.usuario;
+  const { nombre, email } = req.body;
+  try {
+    await pool.query('UPDATE usuarios SET nombre = ?, email = ? WHERE id_usuario = ?', [nombre, email, id_usuario]);
+    res.json({ mensaje: 'Perfil actualizado correctamente' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al actualizar el perfil', error });
+  }
+}
+
+module.exports = { registrarUsuario, loginUsuario, obtenerPerfil, actualizarPerfil, refrescarToken };
