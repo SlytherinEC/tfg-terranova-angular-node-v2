@@ -11,6 +11,18 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const http = inject(HttpClient);
   const tokenService = inject(TokenRefreshService);
 
+  // Evitar intentar refrescar el token si ya estamos haciendo una petición de refresh
+  if (req.url.includes('/refresh')) {
+    return next(req).pipe(
+      catchError((error) => {
+        console.warn('[Interceptor] Error en refresh. Cerrando sesión...');
+        authService.cerrarSesion();
+        router.navigate(['/login']);
+        return throwError(() => error);
+      })
+    );
+  }
+
   const accessToken = authService.obtenerToken();
 
   // Condicion ternaria para verificar si el token es válido o no

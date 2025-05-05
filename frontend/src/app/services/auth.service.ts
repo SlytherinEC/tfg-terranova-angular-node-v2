@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Usuario } from '../usuario';
 import { TokenData } from '../token-data';
 import { jwtDecode } from 'jwt-decode';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -11,8 +12,15 @@ import { jwtDecode } from 'jwt-decode';
 export class AuthService {
 
   private apiUrl = 'http://localhost:4205/api/usuarios';
+  private tokenVerificationTimer: any;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {
+    // Iniciar verificación periódica de tokens
+    this.iniciarVerificacionTokens();
+  }
 
   // Métodos para registrar un nuevo usuario
   registro(usuario: Usuario): Observable<any> {
@@ -30,7 +38,38 @@ export class AuthService {
 
   // Método para verificar si el usuario está autenticado
   estaAutenticado(): boolean {
-    return !!this.obtenerToken();
+    const token = this.obtenerToken();
+    if (!token) {
+      return false;
+    }
+    
+    // Verificar si el token ha expirado
+    try {
+      const decodedToken = jwtDecode<TokenData>(token);
+      const now = Date.now() / 1000;
+      
+      if (decodedToken.exp && decodedToken.exp < now) {
+        // Token expirado, pero aún podríamos tener un refresh token válido
+        const refreshToken = this.obtenerRefreshToken();
+        if (!refreshToken) {
+          this.cerrarSesion();
+          return false;
+        }
+        
+        try {
+          const decodedRefresh = jwtDecode<TokenData>(refreshToken);
+          return decodedRefresh.exp ? decodedRefresh.exp > now : false;
+        } catch {
+          this.cerrarSesion();
+          return false;
+        }
+      }
+      
+      return true;
+    } catch {
+      this.cerrarSesion();
+      return false;
+    }
   }
 
   // Método para guardar el token en localStorage
@@ -47,6 +86,11 @@ export class AuthService {
   cerrarSesion(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    
+    // Asegurarse de que la navegación se realiza solo si no estamos ya en login
+    if (!this.router.url.includes('/login')) {
+      this.router.navigate(['/login']);
+    }
   }
 
   // Método para obtener header con token JWT
@@ -54,7 +98,7 @@ export class AuthService {
     const token = this.obtenerToken();
     return new HttpHeaders({
       Authorization: `Bearer ${token}`
-    })
+    });
   }
 
   obtenerDatosToken(): TokenData | null {
@@ -74,8 +118,6 @@ export class AuthService {
   esAdmin(): boolean {
     const datos = this.obtenerDatosToken();
     return datos ? datos.id_rol === 1 : false;
-    //     return datos?.id_rol === 1;
-    // Si el token no es válido o no existe, se devuelve false
   }
 
   guardarRefreshToken(token: string): void {
@@ -90,4 +132,24 @@ export class AuthService {
     return this.apiUrl;
   }
 
+  // Método para verificar la validez de los tokens
+  verificarTokens(): void {
+    if (!this.estaAutenticado()) {
+      this.cerrarSesion();
+    }
+  }
+  
+  // Iniciar verificación periódica de tokens
+  private iniciarVerificacionTokens(): void {
+    // Verificar tokens cada 30 segundos
+    this.tokenVerificationTimer = setInterval(() => {
+      this.verificarTokens();
+    }, 30000); // 30 segundos
+  }
+  
+  ngOnDestroy(): void {
+    if (this.tokenVerificationTimer) {
+      clearInterval(this.tokenVerificationTimer);
+    }
+  }
 }

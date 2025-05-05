@@ -1,3 +1,4 @@
+//File: backend/utils/tokenUtils.js
 const jwt = require('jsonwebtoken');
 
 const crearAccessToken = (payload) => {

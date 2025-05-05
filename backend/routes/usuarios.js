@@ -1,3 +1,4 @@
+// File: backend/routes/usuarios.js
 const express = require('express');
 const router = express.Router();
 const { verificarToken } = require('../middlewares/auth');
