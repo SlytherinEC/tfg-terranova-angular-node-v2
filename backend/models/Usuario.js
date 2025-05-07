@@ -28,7 +28,7 @@ const Usuario = {
   findById: async (id) => {
     try {
       const [rows] = await db.query(
-        'SELECT id_usuario, nombre, email, id_rol, fecha_registro, image FROM usuarios WHERE id_usuario = ?',
+        'SELECT id_usuario, nombre, email, id_rol, fecha_registro, image, contrasena FROM usuarios WHERE id_usuario = ?',
         [id]
       );
       return rows[0];
