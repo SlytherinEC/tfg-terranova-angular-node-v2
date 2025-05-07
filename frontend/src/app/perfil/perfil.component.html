@@ -1,0 +1,133 @@
+<div class="dashboard-container">
+  <div class="dashboard-content">
+    <!-- Header con información del usuario y menú hamburguesa -->
+    <div class="header">
+      <h1 class="dashboard-title">MI PERFIL</h1>
+      
+      <div class="user-info">
+        <div class="user-profile">
+          <img [src]="'../../assets/images/users/' + imagenPerfil" alt="Perfil" class="profile-image" 
+               onerror="this.src='../../assets/images/users/default_user.png'">
+          <span class="user-name">{{ nombreUsuario }}</span>
+        </div>
+        
+        <!-- Botón para menú móvil -->
+        <div class="menu-toggle" (click)="toggleMenu()">
+          <span class="menu-text">MENU</span>
+          <div class="hamburger" [class.open]="menuAbierto">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de navegación flotante -->
+    <div class="navbar-container" [class.show-navbar]="menuAbierto">
+      <nav class="navbar">
+        <button class="pixel-button nav-button" (click)="volverDashboard()">VOLVER</button>
+        <button class="pixel-button nav-button" (click)="navegarA('/dashboard')">DASHBOARD</button>
+        <button class="pixel-button nav-button logout-button" (click)="logout()">SALIR</button>
+      </nav>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="game-content">
+      <!-- Mensajes de error y éxito -->
+      <div *ngIf="mensajeError" class="mensaje error-message">{{ mensajeError }}</div>
+      <div *ngIf="mensajeExito" class="mensaje success-message">{{ mensajeExito }}</div>
+
+      <!-- Estado de carga -->
+      <div *ngIf="cargando" class="loading">Cargando...</div>
+
+      <!-- Visualización de perfil -->
+      <div *ngIf="!modoFormulario && usuario" class="perfil-card">
+        <div class="perfil-header">
+          <div class="perfil-imagen-container">
+            <img [src]="'../../assets/images/users/' + imagenPerfil" alt="Perfil" class="perfil-imagen" 
+                 onerror="this.src='../../assets/images/users/default_user.png'">
+          </div>
+          <div class="perfil-info">
+            <h2 class="perfil-nombre">{{ usuario.nombre }}</h2>
+            <p class="perfil-email">{{ usuario.email }}</p>
+            <p class="perfil-fecha">Miembro desde: {{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</p>
+          </div>
+        </div>
+
+        <div class="perfil-acciones">
+          <button class="pixel-button action-button edit-button" (click)="mostrarFormularioEditar()">
+            EDITAR PERFIL
+          </button>
+          <button class="pixel-button action-button password-button" (click)="mostrarFormularioContrasena()">
+            CAMBIAR CONTRASEÑA
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de edición de perfil -->
+      <div *ngIf="modoFormulario === 'editar'" class="formulario-container">
+        <h2 class="form-title">Editar Perfil</h2>
+        
+        <form [formGroup]="formularioPerfil" (ngSubmit)="guardarPerfil()" class="formulario-content">
+          <div class="form-group">
+            <label for="nombre">Nombre de Usuario:</label>
+            <input type="text" id="nombre" formControlName="nombre" class="form-input">
+            <div *ngIf="formularioPerfil.get('nombre')?.invalid && formularioPerfil.get('nombre')?.touched" class="error-text">
+              Nombre de usuario requerido (mínimo 3 caracteres)
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" formControlName="email" class="form-input">
+            <div *ngIf="formularioPerfil.get('email')?.invalid && formularioPerfil.get('email')?.touched" class="error-text">
+              Email válido requerido
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="pixel-button action-button" [disabled]="formularioPerfil.invalid">
+              GUARDAR CAMBIOS
+            </button>
+            <button type="button" class="pixel-button action-button cancel-button" (click)="cancelarFormulario()">
+              CANCELAR
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Formulario de cambio de contraseña -->
+      <div *ngIf="modoFormulario === 'contrasena'" class="formulario-container">
+        <h2 class="form-title">Cambiar Contraseña</h2>
+        
+        <form [formGroup]="formularioContrasena" (ngSubmit)="cambiarContrasena()" class="formulario-content">
+          <div class="form-group">
+            <label for="contrasenaActual">Contraseña Actual:</label>
+            <input type="password" id="contrasenaActual" formControlName="contrasenaActual" class="form-input">
+            <div *ngIf="formularioContrasena.get('contrasenaActual')?.invalid && formularioContrasena.get('contrasenaActual')?.touched" class="error-text">
+              La contraseña actual es requerida
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="nuevaContrasena">Nueva Contraseña:</label>
+            <input type="password" id="nuevaContrasena" formControlName="nuevaContrasena" class="form-input">
+            <div *ngIf="formularioContrasena.get('nuevaContrasena')?.invalid && formularioContrasena.get('nuevaContrasena')?.touched" class="error-text">
+              La nueva contraseña debe tener al menos 6 caracteres
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="pixel-button action-button" [disabled]="formularioContrasena.invalid">
+              CAMBIAR CONTRASEÑA
+            </button>
+            <button type="button" class="pixel-button action-button cancel-button" (click)="cancelarFormulario()">
+              CANCELAR
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

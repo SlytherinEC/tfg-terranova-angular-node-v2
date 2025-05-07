@@ -1,3 +1,4 @@
+// File: backend/models/Usuario.js
 const db = require('../config/db');
 
 const Usuario = {
@@ -36,7 +37,35 @@ const Usuario = {
       throw err;
     }
   },
-  
+
+  // Añadir este método al modelo Usuario.js
+  actualizarPerfil: async (id_usuario, nombre, email) => {
+    try {
+      const [result] = await db.query(
+        'UPDATE usuarios SET nombre = ?, email = ? WHERE id_usuario = ?',
+        [nombre, email, id_usuario]
+      );
+      return result.affectedRows > 0;
+    } catch (err) {
+      console.error('[ERROR] Fallo al actualizar perfil:', err.message);
+      throw err;
+    }
+  },
+
+  // Añadir este método al modelo Usuario.js
+  cambiarContrasena: async (id_usuario, hashedPassword) => {
+    try {
+      const [result] = await db.query(
+        'UPDATE usuarios SET contrasena = ? WHERE id_usuario = ?',
+        [hashedPassword, id_usuario]
+      );
+      return result.affectedRows > 0;
+    } catch (err) {
+      console.error('[ERROR] Fallo al cambiar contraseña:', err.message);
+      throw err;
+    }
+  },
+
 };
 
 module.exports = Usuario;

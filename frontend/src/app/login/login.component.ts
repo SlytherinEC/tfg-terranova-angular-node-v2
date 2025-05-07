@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from '../auth.service';
+import { AuthService } from '../services/auth.service';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -32,7 +32,8 @@ export class LoginComponent {
 
     this.authService.login(email, contrasena).subscribe({
       next: (res) => {
-        this.authService.guardarToken(res.token);
+        this.authService.guardarToken(res.accessToken);
+        this.authService.guardarRefreshToken(res.refreshToken);
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {

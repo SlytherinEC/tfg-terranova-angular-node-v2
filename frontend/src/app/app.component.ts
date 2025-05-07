@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TokenRefreshService } from './services/token-refresh.service';
 
 @Component({
   selector: 'app-root',
@@ -9,5 +10,14 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'frontend';
+  title = 'Terranova';
+
+  private tokenRefreshService = inject(TokenRefreshService);
+
+  @HostListener('document:click')
+  @HostListener('document:keydown')
+  @HostListener('document:mousemove')
+  registrarActividad(): void {
+    this.tokenRefreshService.actualizarActividad();
+  }
 }
