@@ -51,7 +51,7 @@ const loginUsuario = async (req, res) => {
 
     const accessToken = crearAccessToken(payload);
     const refreshToken = crearRefreshToken(payload);
-    
+
     res.status(200).json({ accessToken, refreshToken });
 
   } catch (error) {
@@ -100,14 +100,79 @@ const obtenerPerfil = async (req, res) => {
 };
 
 const actualizarPerfil = async (req, res) => {
-  const { id_usuario } = req.usuario;
+  const { id_usuario } = req.usuario; // Obtenido del token mediante middleware auth
   const { nombre, email } = req.body;
-  try {
-    await pool.query('UPDATE usuarios SET nombre = ?, email = ? WHERE id_usuario = ?', [nombre, email, id_usuario]);
-    res.json({ mensaje: 'Perfil actualizado correctamente' });
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al actualizar el perfil', error });
-  }
-}
 
-module.exports = { registrarUsuario, loginUsuario, obtenerPerfil, actualizarPerfil, refrescarToken };
+  try {
+    // Validaciones básicas
+    if (!nombre || !email) {
+      return res.status(400).json({ message: 'Nombre y email son obligatorios' });
+    }
+
+    // Verificar que el email no esté en uso por otro usuario
+    const usuarioExistente = await Usuario.findByEmail(email);
+    if (usuarioExistente && usuarioExistente.id_usuario !== id_usuario) {
+      return res.status(400).json({ message: 'El email ya está en uso por otro usuario' });
+    }
+
+    // Verificar que el nombre no esté en uso por otro usuario
+    const nombreExistente = await Usuario.findByNombre(nombre);
+    if (nombreExistente && nombreExistente.id_usuario !== id_usuario) {
+      return res.status(400).json({ message: 'El nombre de usuario ya está en uso' });
+    }
+
+    // Actualizar el perfil utilizando un método del modelo Usuario
+    const actualizado = await Usuario.actualizarPerfil(id_usuario, nombre, email);
+
+    if (!actualizado) {
+      return res.status(500).json({ message: 'Error al actualizar el perfil' });
+    }
+
+    res.json({ message: 'Perfil actualizado correctamente' });
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error);
+    res.status(500).json({ message: 'Error en el servidor', error: error.message });
+  }
+};
+
+// Añadir al usuarioController.js
+const cambiarContrasena = async (req, res) => {
+  const { id_usuario } = req.usuario;
+  const { contrasenaActual, nuevaContrasena } = req.body;
+
+  try {
+    // Validaciones
+    if (!contrasenaActual || !nuevaContrasena) {
+      return res.status(400).json({ message: 'La contraseña actual y la nueva son obligatorias' });
+    }
+
+    // Obtener usuario actual
+    const usuario = await Usuario.findById(id_usuario);
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Verificar contraseña actual
+    const contrasenaValida = await bcrypt.compare(contrasenaActual, usuario.contrasena);
+    if (!contrasenaValida) {
+      return res.status(401).json({ message: 'La contraseña actual es incorrecta' });
+    }
+
+    // Encriptar nueva contraseña
+    const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+
+    // Actualizar contraseña
+    const actualizado = await Usuario.cambiarContrasena(id_usuario, hashedPassword);
+
+    if (!actualizado) {
+      return res.status(500).json({ message: 'Error al cambiar la contraseña' });
+    }
+
+    res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    res.status(500).json({ message: 'Error en el servidor', error: error.message });
+  }
+};
+
+module.exports = { registrarUsuario, loginUsuario, obtenerPerfil, actualizarPerfil, refrescarToken, cambiarContrasena };
