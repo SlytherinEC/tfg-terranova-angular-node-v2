@@ -27,7 +27,8 @@
     <div class="navbar-container" [class.show-navbar]="menuAbierto">
       <nav class="navbar">
         <button class="pixel-button nav-button" (click)="navegarA('/perfil')">Perfil</button>
-        <button class="pixel-button nav-button" (click)="navegarA('/iniciar-partida')">Iniciar Partida</button>
+        <!-- <button class="pixel-button nav-button" (click)="navegarA('/iniciar-partida')">Iniciar Partida</button> -->
+        <button class="pixel-button nav-button" (click)="navegarA('/game')">Iniciar Partida</button>
         <button class="pixel-button nav-button" (click)="navegarA('/ranking')">Ranking</button>
         <!-- Mostrar botón de administración solo si es admin -->
         <button *ngIf="esAdmin" class="pixel-button nav-button admin-button" (click)="navegarA('/admin')">Administrar</button>
