@@ -1,0 +1,200 @@
+.encounter-container {
+  background-color: rgba(10, 25, 47, 0.95);
+  border: 2px solid rgba(244, 67, 54, 0.7);
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #FFD54F;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+.encounter-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.encounter-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #F44336;
+}
+
+.encounter-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.alien-info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.alien-image {
+  width: 120px;
+  height: 120px;
+  background-color: rgba(244, 67, 54, 0.2);
+  border: 2px solid #F44336;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alien-placeholder {
+  font-size: 0.8rem;
+  text-align: center;
+  color: #F44336;
+}
+
+.alien-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.alien-name {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #F44336;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  width: 80px;
+  font-size: 0.7rem;
+}
+
+.stat-value {
+  font-size: 0.8rem;
+}
+
+.alien-hp-bar {
+  flex: 1;
+  height: 20px;
+  background-color: #0A192F;
+  border: 1px solid #F44336;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background-color: #F44336;
+  transition: width 0.3s ease;
+}
+
+.hp-fill span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #FFD54F;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.7);
+}
+
+.combat-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.dice-result {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.result-message {
+  font-size: 0.8rem;
+  color: #FFD54F;
+  text-align: center;
+}
+
+.weapons-section {
+  margin-top: 1rem;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.weapons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.weapon-card {
+  background-color: rgba(10, 25, 47, 0.7);
+  border: 2px solid #1A7A7A;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(.disabled) {
+    transform: scale(1.05);
+    background-color: rgba(26, 122, 122, 0.3);
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.weapon-name {
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.weapon-stats {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.6rem;
+}
+
+.combat-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.escape-button {
+  padding: 0.8rem 1.2rem;
+  font-size: 0.7rem;
+  background-color: rgba(156, 39, 176, 0.5);
+  border: 2px solid #9C27B0;
+  color: #FFD54F;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(156, 39, 176, 0.8);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
