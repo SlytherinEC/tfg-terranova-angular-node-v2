@@ -122,4 +122,38 @@ export class GameService {
       })
     );
   }
+
+  // Añadir método para guardar estado automáticamente
+  autoSaveGameState(): void {
+    const currentState = this.gameStateSubject.value;
+    if (currentState && currentState.id_partida) {
+      localStorage.setItem(`game_${currentState.id_partida}`, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        state: currentState
+      }));
+    }
+  }
+
+  // Añadir método para cargar estado automáticamente
+  autoLoadGameState(idPartida: number): boolean {
+    const savedData = localStorage.getItem(`game_${idPartida}`);
+    if (savedData) {
+      try {
+        const { timestamp, state } = JSON.parse(savedData);
+        // Verificar si el estado guardado es reciente (menos de 5 minutos)
+        const savedTime = new Date(timestamp).getTime();
+        const currentTime = new Date().getTime();
+        const diffMinutes = (currentTime - savedTime) / (1000 * 60);
+
+        if (diffMinutes < 5) {
+          this.gameStateSubject.next(state);
+          return true;
+        }
+      } catch (e) {
+        console.error('Error al cargar estado guardado:', e);
+      }
+    }
+    return false;
+  }
+
 }
