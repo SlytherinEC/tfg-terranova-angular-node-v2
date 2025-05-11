@@ -9,6 +9,7 @@ import { adminGuard } from './guards/admin.guard';
 import { NoAutorizadoComponent } from './no-autorizado/no-autorizado.component';
 import { PerfilComponent } from './perfil/perfil.component';
 import { ListaUsuariosComponent } from './lista-usuarios/lista-usuarios.component';
+import { GAME_ROUTES } from './game/game.routes';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -19,4 +20,5 @@ export const routes: Routes = [
   { path: 'admin', canActivate: [adminGuard], component: ListaUsuariosComponent },
   { path: 'no-autorizado', canActivate: [authGuard], component: NoAutorizadoComponent },
   { path: 'perfil', canActivate: [authGuard], component: PerfilComponent },
+  { path: 'game', children: GAME_ROUTES },
 ];

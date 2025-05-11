@@ -1,0 +1,203 @@
+<!-- src/app/game/game-board/game-board.component.html -->
+<div class="game-container">
+  <div class="game-header">
+    <h1 class="game-title">TERRANOVA</h1>
+    <div class="game-stats">
+      <div class="stat">
+        <span class="stat-label">TRAJE:</span>
+        <div class="stat-bar">
+          <div class="stat-fill" [style.width.%]="((gameState.capitan.traje || 0) / 6) * 100"></div>
+          <span class="stat-value">{{gameState.capitan.traje || 0}}/6</span>
+        </div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">O2:</span>
+        <div class="stat-bar">
+          <div class="stat-fill oxygen" [style.width.%]="((gameState.capitan.oxigeno || 0) / 10) * 100"></div>
+          <span class="stat-value">{{gameState.capitan.oxigeno || 0}}/10</span>
+        </div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">ESTRÉS:</span>
+        <div class="stat-bar">
+          <div class="stat-fill stress" [style.width.%]="((gameState.capitan.estres || 0) / 10) * 100"></div>
+          <span class="stat-value">{{gameState.capitan.estres || 0}}/10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-content">
+    <div class="game-board">
+      <div class="hex-grid" *ngIf="gameState.mapa && gameState.mapa.length > 0">
+        <div class="hex-row" *ngFor="let row of gameState.mapa; let y = index">
+          <div class="hex-cell-container" *ngFor="let cell of row; let x = index" [class.offset]="y % 2 == 0">
+            <div [class]="getCellClass(cell)" (click)="onCellClick(cell)" [title]="cell.tipo">
+              <div class="hex-content">
+                <span *ngIf="cell.tipo === 'control'" class="cell-icon">CA</span>
+                <span *ngIf="cell.tipo === 'estacion_oxigeno'" class="cell-icon">O2</span>
+                <span *ngIf="cell.tipo === 'armeria'" class="cell-icon">ARM</span>
+                <span *ngIf="cell.tipo === 'bahia_escape'" class="cell-icon">ESC</span>
+                <span *ngIf="cell.tipo === 'bahia_carga'" class="cell-icon">CAR</span>
+                <span *ngIf="cell.tipo === 'evento_aleatorio'" class="cell-icon">?</span>
+                <span *ngIf="cell.tipo === 'inicio'" class="cell-icon">INI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
+        Cargando mapa...
+      </div>
+    </div>
+
+    <div class="game-sidebar">
+      <div class="sidebar-section">
+        <h3 class="section-title">CÓDIGOS</h3>
+        <div class="codes-container">
+          <div class="code-slot" *ngFor="let _ of [].constructor(6); let i = index"
+            [class.filled]="i < (gameState.codigos_activacion || 0)"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">PASAJEROS</h3>
+        <div class="passengers-container">
+          <div class="passenger" *ngFor="let _ of [].constructor(gameState.pasajeros || 0)"></div>
+        </div>
+        <div class="action-buttons" *ngIf="gameState.pasajeros > 0">
+          <button class="game-button" (click)="sacrificarPasajero('escapar_encuentro')"
+            [disabled]="!gameState.encuentro_actual">
+            Sacrificar para escapar
+          </button>
+          <button class="game-button" (click)="sacrificarPasajero('evadir_ataque')"
+            [disabled]="!gameState.encuentro_actual">
+            Sacrificar para evadir ataque
+          </button>
+          <button class="game-button" (click)="sacrificarPasajero('recuperar_oxigeno')">
+            Sacrificar para recuperar O2
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">ARMAS</h3>
+        <div class="weapons-container">
+          <div class="weapon" *ngFor="let arma of gameState.armas">
+            <div class="weapon-header">
+              <span class="weapon-name">{{arma.nombre}}</span>
+              <span class="weapon-ammo">{{arma.municion}}/{{arma.municion_max}}</span>
+            </div>
+            <div class="weapon-stats">
+              <span class="weapon-stat">DMG: {{arma.danio}}</span>
+              <span class="weapon-stat">PRC: {{arma.precision}}</span>
+            </div>
+            <button class="use-weapon" *ngIf="gameState.encuentro_actual" [disabled]="arma.municion <= 0 || isLoading"
+              (click)="resolverCombate(arma.nombre)">
+              USAR
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">MOCHILA</h3>
+        <div class="items-container">
+          <div class="item" *ngFor="let item of gameState.mochila; let i = index">
+            <div class="item-info">
+              <span class="item-name">{{item.nombre}}</span>
+              <span class="item-uses">Usos: {{item.usos}}</span>
+            </div>
+            <div class="item-effect">{{item.efecto}}</div>
+            <button class="use-item" (click)="usarItem(i)" [disabled]="isLoading">
+              USAR
+            </button>
+          </div>
+          <div class="empty-slots" *ngIf="gameState.mochila && gameState.mochila.length < 5">
+            <div class="empty-slot" *ngFor="let _ of [].constructor(5 - (gameState.mochila.length || 0))">
+              [Vacío]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-log">
+        <h3 class="section-title">REGISTRO</h3>
+        <div class="log-messages">
+          <div class="log-message" *ngFor="let message of logMessages">
+            {{message}}
+          </div>
+          <div *ngIf="logMessages.length === 0" class="log-empty">
+            No hay entradas de registro aún.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel de combate -->
+  <div class="modal-overlay" *ngIf="showEncounter">
+    <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
+      [canSacrifice]="gameState.pasajeros > 0" [isLoading]="isLoading" [combatResult]="combatMessage"
+      [diceResult]="currentDiceResult" (weaponSelected)="resolverCombate($event)"
+      (escape)="sacrificarPasajero('escapar_encuentro')">
+    </app-encounter>
+  </div>
+
+  <!-- Panel de evento -->
+  <div class="modal-overlay" *ngIf="showEvent && activeEvent">
+    <app-event-resolver [event]="activeEvent" [isLoading]="isLoading" (optionSelected)="resolverEvento($event)">
+    </app-event-resolver>
+  </div>
+
+  <!-- Panel de fin de juego -->
+  <div class="modal-overlay" *ngIf="gameState.estado !== 'EN_CURSO'">
+    <div class="modal-content game-over-panel">
+      <h2 class="modal-title" [class.victory]="gameState.estado === 'VICTORIA'">
+        {{gameState.estado === 'VICTORIA' ? '¡VICTORIA!' : 'DERROTA'}}
+      </h2>
+
+      <div class="game-over-message">
+        {{getFinalMessage()}}
+      </div>
+
+      <div class="achievements" *ngIf="gameState.logros">
+        <h3>LOGROS OBTENIDOS</h3>
+        <div class="achievements-grid">
+          <div class="achievement" *ngFor="let logro of objectKeys(gameState.logros)"
+            [class.achieved]="gameState.logros[logro]">
+            {{logro}}
+          </div>
+        </div>
+      </div>
+
+      <div class="rank-display" *ngIf="gameState.estado === 'VICTORIA'">
+        <h3>RANGO</h3>
+        <div class="rank">{{calcularRangoFinal(gameState)}}</div>
+      </div>
+
+      <button class="game-button back-button" (click)="volver()">
+        VOLVER AL MENÚ
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensaje de carga -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <div class="loading-text">CARGANDO...</div>
+  </div>
+
+  <!-- Mensaje de error o información -->
+  <div class="message-popup" *ngIf="mensaje" (click)="mensaje = null">
+    {{mensaje}}
+    <div class="close-text">Toca para cerrar</div>
+  </div>
+
+  <!-- Botones de control -->
+  <div class="game-controls">
+    <button class="control-button back-button" (click)="volver()">
+      VOLVER AL MENÚ
+    </button>
+  </div>
+</div>

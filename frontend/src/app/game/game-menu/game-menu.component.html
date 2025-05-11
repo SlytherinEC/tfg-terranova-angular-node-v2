@@ -1,0 +1,48 @@
+<!-- src/app/game/game-menu/game-menu.component.html -->
+<div class="game-menu-container">
+  <div class="game-menu-content">
+    <h1 class="game-title">TERRANOVA</h1>
+    <p class="subtitle">SUPERVIVENCIA ESPACIAL</p>
+
+    <div class="menu-section">
+      <h2 class="section-title">NUEVA PARTIDA</h2>
+      <div class="difficulty-selector">
+        <label for="dificultad">SELECCIONA DIFICULTAD:</label>
+        <select id="dificultad" [(ngModel)]="dificultadSeleccionada" class="select-input">
+          <option value="NORMAL">NORMAL</option>
+          <option value="DIFICIL">DIFÍCIL</option>
+          <option value="LOCURA">LOCURA</option>
+        </select>
+      </div>
+      <button class="game-button" (click)="iniciarNuevaPartida()" [disabled]="cargando">
+        {{ cargando ? 'INICIANDO...' : 'INICIAR PARTIDA' }}
+      </button>
+    </div>
+
+    <div class="menu-section" *ngIf="partidas.length > 0">
+      <h2 class="section-title">PARTIDAS GUARDADAS</h2>
+      <div class="saved-games-list">
+        <div class="saved-game" *ngFor="let partida of partidas | slice:0:5">
+          <div class="game-info">
+            <span class="game-id">ID: {{partida.id_partida}}</span>
+            <span class="game-date">{{partida.fecha_actualizacion | date:'dd/MM/yyyy HH:mm'}}</span>
+            <span class="game-status" [ngClass]="{'status-victory': partida.estado === 'VICTORIA', 
+                               'status-defeat': partida.estado === 'DERROTA',
+                               'status-in-progress': partida.estado === 'EN_CURSO'}">
+              {{partida.estado === 'EN_CURSO' ? 'EN PROGRESO' : partida.estado}}
+            </span>
+            <span class="game-codes">Códigos: {{partida.codigos_activacion}}/6</span>
+          </div>
+          <button class="load-button" (click)="cargarPartida(partida.id_partida)"
+            [disabled]="cargando || partida.estado !== 'EN_CURSO'">
+            {{ partida.estado === 'EN_CURSO' ? 'CONTINUAR' : 'VER' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-message" *ngIf="error">{{error}}</div>
+
+    <button class="back-button" (click)="volver()">VOLVER</button>
+  </div>
+</div>

@@ -1,0 +1,65 @@
+<div class="encounter-container" *ngIf="encounter">
+  <div class="encounter-header">
+    <h2 class="encounter-title">¡ENCUENTRO ALIENÍGENA!</h2>
+  </div>
+
+  <div class="encounter-content">
+    <div class="alien-info">
+      <div class="alien-image" [ngClass]="'alien-' + encounter.alien">
+        <!-- Contenido del alien -->
+        <div class="alien-placeholder">{{encounter.alienData?.nombre || 'Alien'}}</div>
+      </div>
+
+      <div class="alien-stats">
+        <h3 class="alien-name">{{encounter.alienData?.nombre || 'Alien'}}</h3>
+
+        <div class="stat-row">
+          <span class="stat-label">HP:</span>
+          <div class="alien-hp-bar">
+            <div class="hp-fill" [style.width.%]="(encounter.pg / encounter.alienData?.pg) * 100"></div>
+            <span>{{encounter.pg}} / {{encounter.alienData?.pg}}</span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Daño:</span>
+          <span class="stat-value">{{encounter.alienData?.danio}}</span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Objetivo:</span>
+          <span class="stat-value">{{encounter.alienData?.objetivo}}+</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="combat-result" *ngIf="combatResult">
+      <div class="dice-result">
+        <app-dice *ngFor="let _ of diceArray" [resultado]="diceResult"></app-dice>
+      </div>
+      <div class="result-message">{{combatResult}}</div>
+    </div>
+
+    <div class="weapons-section">
+      <h3 class="section-title">SELECCIONA UN ARMA</h3>
+
+      <div class="weapons-grid">
+        <div class="weapon-card" *ngFor="let arma of weapons" [class.disabled]="arma.municion <= 0 || isLoading"
+          (click)="onWeaponSelect(arma.nombre)">
+          <div class="weapon-name">{{arma.nombre}}</div>
+          <div class="weapon-stats">
+            <span class="weapon-stat">DMG: {{arma.danio}}</span>
+            <span class="weapon-stat">PRC: {{arma.precision}}</span>
+            <span class="weapon-stat">{{arma.municion}}/{{arma.municion_max}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="combat-actions">
+      <button class="escape-button" [disabled]="isLoading || !canSacrifice" (click)="onEscape()">
+        SACRIFICAR PASAJERO PARA ESCAPAR
+      </button>
+    </div>
+  </div>
+</div>
