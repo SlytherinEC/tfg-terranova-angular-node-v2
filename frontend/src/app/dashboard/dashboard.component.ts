@@ -67,6 +67,10 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  navegarAJuego(): void {
+    this.router.navigate(['/game']);
+  }
+
   navegarA(ruta: string): void {
     this.router.navigate([ruta]);
     this.menuAbierto = false;
