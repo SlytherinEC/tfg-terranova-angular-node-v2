@@ -1,6 +1,5 @@
 import { Component, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DiceComponent } from '../dice/dice.component';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
 import { Router } from '@angular/router';
@@ -9,7 +8,7 @@ import { TokenData } from '../token-data';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, DiceComponent],
+  imports: [CommonModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
