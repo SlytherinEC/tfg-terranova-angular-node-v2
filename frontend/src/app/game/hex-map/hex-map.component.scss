@@ -2,8 +2,10 @@
 .hex-map-container {
   width: 100%;
   overflow: auto;
-  padding: 2rem;
+  padding: 1rem;
   position: relative;
+  display: flex;
+  justify-content: center;
 }
 
 .hex-grid {
@@ -17,7 +19,7 @@
 .hex-row {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.5rem; /* Separación vertical entre filas */
+  margin-bottom: -14px; /* Separación vertical negativa para acercar las filas sin superposición */
   position: relative;
 }
 
@@ -27,7 +29,7 @@
  */
 
 .hex-cell-container {
-  margin: 0 0.25rem; /* Separación horizontal entre hexágonos */
+  margin: 0 1px; /* Separación horizontal negativa para que los hexágonos se vean conectados */
 }
 
 .spacer {
