@@ -7,7 +7,7 @@ const gameController = {
   nuevaPartida: async (req, res) => {
     try {
       const id_usuario = req.usuario.id_usuario;
-      const { dificultad = 'NORMAL' } = req.body;
+      const { dificultad = 'MUY_FACIL' } = req.body;
       
       // Crear nueva partida
       const partida = await Partida.create(id_usuario);
@@ -17,15 +17,28 @@ const gameController = {
       
       // Ajustar según dificultad
       switch (dificultad) {
+        case 'MUY_FACIL':
+          // Valores por defecto (no hay cambios)
+          break;
+        case 'NORMAL':
+          // Traje: 4 puntos, Estrés: 1 punto, Armas: excepto Blaster
+          partida.capitan.traje = 4;
+          partida.capitan.estres = 1;
+          partida.armas = partida.armas.filter(a => a.nombre !== 'Blaster');
+          break;
         case 'DIFICIL':
-          // Menos armas en dificultad difícil
-          partida.armas.pop();
+          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Laser y Blaster, Pasajeros: 4
+          partida.capitan.traje = 3;
+          partida.capitan.estres = 2;
+          partida.armas = partida.armas.filter(a => a.nombre !== 'Pistola Laser' && a.nombre !== 'Blaster');
+          partida.pasajeros = 4;
           break;
         case 'LOCURA':
-          // Solo dos armas en locura
-          partida.armas = partida.armas.slice(0, 2);
-          // Menos oxígeno
-          partida.capitan.oxigeno = 8;
+          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Plasma, Pasajeros: 2
+          partida.capitan.traje = 2;
+          partida.capitan.estres = 3;
+          partida.armas = partida.armas.filter(a => a.nombre === 'Palanca' || a.nombre === 'Pistola de Plasma');
+          partida.pasajeros = 2;
           break;
       }
       
