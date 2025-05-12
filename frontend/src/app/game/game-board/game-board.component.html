@@ -30,10 +30,14 @@
   <div class="game-content">
     <div class="game-board">
       <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
-      <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
-        [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
-        (cellClick)="onCellClick($event)"></app-hex-map>
-
+      <app-hex-map
+        *ngIf="gameState.mapa && gameState.mapa.length > 0"
+        [mapa]="gameState.mapa"
+        [posicionActual]="gameState.posicion_actual"
+        [codigosActivacion]="gameState.codigos_activacion"
+        (cellClick)="onCellClick($event)"
+      ></app-hex-map>
+      
       <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
         Cargando mapa...
       </div>
@@ -74,7 +78,8 @@
           <div class="weapon" *ngFor="let arma of gameState.armas">
             <div class="weapon-header">
               <span class="weapon-name">{{arma.nombre}}</span>
-              <span class="weapon-ammo">{{arma.municion}}/{{arma.municion_max}}</span>
+              <span class="weapon-ammo" *ngIf="arma.municion_max !== null">{{arma.municion}}/{{arma.municion_max}}</span>
+              <span class="weapon-ammo" *ngIf="arma.municion_max === null">∞</span>
             </div>
             <div class="weapon-stats">
               <span class="weapon-stat">DMG: {{arma.danio}}</span>
