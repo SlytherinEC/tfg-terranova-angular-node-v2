@@ -1,4 +1,4 @@
-// controllers/gameController.js
+// controllers/gameController.js - Actualizado con métodos para el mapa
 const Partida = require('../models/Partida');
 const GameService = require('../services/GameService');
 
@@ -77,6 +77,68 @@ const gameController = {
     }
   },
   
+  // Nuevo: Obtener solo el mapa de una partida
+  obtenerMapa: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const partida = await Partida.getById(id_partida);
+      
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+      
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+      
+      // Devolver solo el mapa
+      res.status(200).json({ 
+        mapa: partida.mapa
+      });
+    } catch (error) {
+      console.error('Error al obtener mapa:', error);
+      res.status(500).json({ mensaje: 'Error al obtener mapa', error: error.message });
+    }
+  },
+  
+  // Nuevo: Actualizar solo el mapa de una partida
+  actualizarMapa: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { mapa } = req.body;
+      
+      if (!mapa || !Array.isArray(mapa)) {
+        return res.status(400).json({ mensaje: 'Formato de mapa inválido' });
+      }
+      
+      const partida = await Partida.getById(id_partida);
+      
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+      
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+      
+      // Actualizar solo el mapa
+      const actualizado = await Partida.updateMap(id_partida, mapa);
+      
+      if (!actualizado) {
+        return res.status(500).json({ mensaje: 'Error al actualizar el mapa' });
+      }
+      
+      res.status(200).json({ 
+        mensaje: 'Mapa actualizado con éxito'
+      });
+    } catch (error) {
+      console.error('Error al actualizar mapa:', error);
+      res.status(500).json({ mensaje: 'Error al actualizar mapa', error: error.message });
+    }
+  },
+  
   // Explorar habitación
   explorarHabitacion: async (req, res) => {
     try {
@@ -121,6 +183,11 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al explorar habitación', error: error.message });
     }
   },
+  
+  // Resto de métodos del controlador (permanecen iguales)...
+  // resolverCombate, sacrificarPasajero, usarItem, resolverEvento
+  
+  // --- INICIO: Preservo estos métodos originales ---
   
   // Resolver combate
   resolverCombate: async (req, res) => {
@@ -299,6 +366,8 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver evento', error: error.message });
     }
   }
+  
+  // --- FIN: Métodos originales preservados ---
 };
 
 module.exports = gameController;
