@@ -1,0 +1,18 @@
+<!-- src/app/game/hex-map/hex-map.component.html -->
+<div class="hex-map-container">
+  <div class="hex-grid">
+    <div *ngFor="let row of mapRows; let y = index" class="hex-row" [ngClass]="{'offset-row': y % 2 === 0}">
+      <!-- Espaciadores para centrar las filas según la cantidad de hexágonos -->
+      <div class="spacer" [style.width.%]="(hexesPerRow[hexesPerRow.length-1] - row.length) * 3"></div>
+      
+      <div *ngFor="let cell of row; let x = index" class="hex-cell-container">
+        <app-hex-cell
+          [cell]="cell"
+          [isCurrentPosition]="cell.x === posicionActual.x && cell.y === posicionActual.y"
+          [codigosActivacion]="codigosActivacion"
+          (cellClick)="onCellClick(cell)"
+        ></app-hex-cell>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-// controllers/gameController.js
+// controllers/gameController.js - Actualizado con métodos para el mapa
 const Partida = require('../models/Partida');
 const GameService = require('../services/GameService');
 
@@ -7,7 +7,7 @@ const gameController = {
   nuevaPartida: async (req, res) => {
     try {
       const id_usuario = req.usuario.id_usuario;
-      const { dificultad = 'NORMAL' } = req.body;
+      const { dificultad = 'MUY_FACIL' } = req.body;
       
       // Crear nueva partida
       const partida = await Partida.create(id_usuario);
@@ -17,15 +17,28 @@ const gameController = {
       
       // Ajustar según dificultad
       switch (dificultad) {
+        case 'MUY_FACIL':
+          // Valores por defecto (no hay cambios)
+          break;
+        case 'NORMAL':
+          // Traje: 4 puntos, Estrés: 1 punto, Armas: excepto Blaster
+          partida.capitan.traje = 4;
+          partida.capitan.estres = 1;
+          partida.armas = partida.armas.filter(a => a.nombre !== 'Blaster');
+          break;
         case 'DIFICIL':
-          // Menos armas en dificultad difícil
-          partida.armas.pop();
+          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Laser y Blaster, Pasajeros: 4
+          partida.capitan.traje = 3;
+          partida.capitan.estres = 2;
+          partida.armas = partida.armas.filter(a => a.nombre !== 'Pistola Laser' && a.nombre !== 'Blaster');
+          partida.pasajeros = 4;
           break;
         case 'LOCURA':
-          // Solo dos armas en locura
-          partida.armas = partida.armas.slice(0, 2);
-          // Menos oxígeno
-          partida.capitan.oxigeno = 8;
+          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Plasma, Pasajeros: 2
+          partida.capitan.traje = 2;
+          partida.capitan.estres = 3;
+          partida.armas = partida.armas.filter(a => a.nombre === 'Palanca' || a.nombre === 'Pistola de Plasma');
+          partida.pasajeros = 2;
           break;
       }
       
@@ -77,6 +90,68 @@ const gameController = {
     }
   },
   
+  // Nuevo: Obtener solo el mapa de una partida
+  obtenerMapa: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const partida = await Partida.getById(id_partida);
+      
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+      
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+      
+      // Devolver solo el mapa
+      res.status(200).json({ 
+        mapa: partida.mapa
+      });
+    } catch (error) {
+      console.error('Error al obtener mapa:', error);
+      res.status(500).json({ mensaje: 'Error al obtener mapa', error: error.message });
+    }
+  },
+  
+  // Nuevo: Actualizar solo el mapa de una partida
+  actualizarMapa: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { mapa } = req.body;
+      
+      if (!mapa || !Array.isArray(mapa)) {
+        return res.status(400).json({ mensaje: 'Formato de mapa inválido' });
+      }
+      
+      const partida = await Partida.getById(id_partida);
+      
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+      
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+      
+      // Actualizar solo el mapa
+      const actualizado = await Partida.updateMap(id_partida, mapa);
+      
+      if (!actualizado) {
+        return res.status(500).json({ mensaje: 'Error al actualizar el mapa' });
+      }
+      
+      res.status(200).json({ 
+        mensaje: 'Mapa actualizado con éxito'
+      });
+    } catch (error) {
+      console.error('Error al actualizar mapa:', error);
+      res.status(500).json({ mensaje: 'Error al actualizar mapa', error: error.message });
+    }
+  },
+  
   // Explorar habitación
   explorarHabitacion: async (req, res) => {
     try {
@@ -121,6 +196,11 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al explorar habitación', error: error.message });
     }
   },
+  
+  // Resto de métodos del controlador (permanecen iguales)...
+  // resolverCombate, sacrificarPasajero, usarItem, resolverEvento
+  
+  // --- INICIO: Preservo estos métodos originales ---
   
   // Resolver combate
   resolverCombate: async (req, res) => {
@@ -299,6 +379,8 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver evento', error: error.message });
     }
   }
+  
+  // --- FIN: Métodos originales preservados ---
 };
 
 module.exports = gameController;

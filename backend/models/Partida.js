@@ -1,3 +1,4 @@
+// backend/models/Partida.js - versión actualizada
 const db = require('../config/db');
 
 const Partida = {
@@ -13,13 +14,15 @@ const Partida = {
         },
         pasajeros: 6,
         armas: [
-          { nombre: 'Blaster', danio: 1, precision: 2, municion: 6, municion_max: 6 },
-          { nombre: 'Rifle', danio: 2, precision: 1, municion: 4, municion_max: 4 },
-          { nombre: 'Lanzallamas', danio: 3, precision: 1, municion: 2, municion_max: 2 }
+          { nombre: 'Palanca', danio: 1, precision: 1, municion: null, municion_max: null }, // Munición ilimitada
+          { nombre: 'Pistola de Plasma', danio: 2, precision: 3, municion: 4, municion_max: 4 },
+          { nombre: 'Aguijón', danio: 3, precision: 2, municion: 3, municion_max: 3 },
+          { nombre: 'Pistola Laser', danio: 3, precision: 3, municion: 2, municion_max: 2 },
+          { nombre: 'Blaster', danio: 4, precision: 2, municion: 2, municion_max: 2 }
         ],
         mochila: [],
-        mapa: generarMapaInicial(),
-        posicion_actual: { x: 3, y: 3 }, // Posición inicial (cámaras congeladas)
+        mapa: generarMapaHexagonal(),
+        posicion_actual: { x: 0, y: 0 }, // Posición inicial (el único hex de la fila 1)
         codigos_activacion: 0,
         habitaciones_exploradas: [],
         eventos_completados: [],
@@ -102,72 +105,122 @@ const Partida = {
       console.error('[ERROR] Fallo al actualizar estado de partida:', err.message);
       throw err;
     }
+  },
+
+  // Obtener solo el mapa de una partida
+  getMapById: async (id_partida) => {
+    try {
+      const [rows] = await db.query(
+        'SELECT estado_juego FROM partidas WHERE id_partida = ?',
+        [id_partida]
+      );
+      
+      if (rows.length === 0) return null;
+      
+      const estadoJuego = JSON.parse(rows[0].estado_juego);
+      return estadoJuego.mapa;
+    } catch (err) {
+      console.error('[ERROR] Fallo al obtener mapa de partida:', err.message);
+      throw err;
+    }
+  },
+  
+  // Actualizar solo el mapa de una partida
+  updateMap: async (id_partida, nuevoMapa) => {
+    try {
+      // Primero obtenemos el estado actual
+      const [rows] = await db.query(
+        'SELECT estado_juego FROM partidas WHERE id_partida = ?',
+        [id_partida]
+      );
+      
+      if (rows.length === 0) return false;
+      
+      const estadoJuego = JSON.parse(rows[0].estado_juego);
+      estadoJuego.mapa = nuevoMapa;
+      
+      // Actualizamos el estado con el nuevo mapa
+      const [result] = await db.query(
+        'UPDATE partidas SET estado_juego = ? WHERE id_partida = ?',
+        [JSON.stringify(estadoJuego), id_partida]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (err) {
+      console.error('[ERROR] Fallo al actualizar mapa de partida:', err.message);
+      throw err;
+    }
   }
 };
 
-// Función auxiliar para generar el mapa inicial
-function generarMapaInicial() {
-  // Crear un mapa basado en el diseño del juego original
-  // con hexágonos para explorar, puertas bloqueadas, etc.
-  // Este es un ejemplo simplificado
+// Función auxiliar para generar el mapa inicial hexagonal
+function generarMapaHexagonal() {
+  // Estructura de filas hexagonales definidas según los requisitos
+  const hexesPerRow = [1, 2, 3, 4, 5, 6, 7, 8, 11, 10, 11, 10, 7, 6, 1];
   
+  // Mapeo de los tipos de celdas por fila
+  const mapDefinition = [
+    ['inicio'],
+    ['explorable', 'explorable'],
+    ['explorable', 'explorable', 'explorable'],
+    ['explorable', 'explorable', 'explorable', 'explorable'],
+    ['explorable', 'explorable', 'explorable', 'explorable', 'explorable'],
+    ['evento_aleatorio', 'inaccesible', 'explorable', 'explorable', 'explorable', 'evento_aleatorio'],
+    ['explorable', 'explorable', 'inaccesible', 'puerta_bloqueada', 'inaccesible', 'explorable', 'explorable'],
+    ['explorable', 'estacion_oxigeno', 'inaccesible', 'explorable', 'explorable', 'inaccesible', 'inaccesible', 'puerta_bloqueada'],
+    ['explorable', 'explorable', 'explorable', 'inaccesible', 'armeria', 'explorable', 'explorable', 'inaccesible', 'explorable', 'explorable', 'inaccesible'],
+    ['puerta_bloqueada', 'explorable', 'inaccesible', 'inaccesible', 'inaccesible', 'evento_aleatorio', 'inaccesible', 'estacion_oxigeno', 'explorable', 'evento_aleatorio'],
+    ['explorable', 'inaccesible', 'inaccesible', 'explorable', 'bahia_carga', 'inaccesible', 'control', 'inaccesible', 'explorable', 'explorable', 'seguridad'],
+    ['explorable', 'evento_aleatorio', 'explorable', 'explorable', 'explorable', 'inaccesible', 'inaccesible', 'explorable', 'explorable', 'explorable'],
+    ['explorable', 'explorable', 'explorable', 'explorable', 'estacion_oxigeno', 'inaccesible', 'armeria'],
+    ['inaccesible', 'explorable', 'explorable', 'explorable', 'explorable', 'inaccesible'],
+    ['bahia_escape']
+  ];
+  
+  // Configuración de las puertas bloqueadas
+  const puertasBloqueadas = [
+    { y: 6, x: 3, codigos: 4 },
+    { y: 7, x: 7, codigos: 1 },
+    { y: 9, x: 0, codigos: 3 },
+    { y: 14, x: 0, codigos: 6 }
+  ];
+  
+  // Mapa final
   const mapa = [];
   
-  // Generar 7x7 hexágonos (simplificado para ejemplo)
-  for (let y = 0; y < 7; y++) {
-    mapa[y] = [];
-    for (let x = 0; x < 7; x++) {
-      // Determinar tipo de celda basado en coordenadas
-      let tipo = 'vacio';
+  for (let y = 0; y < mapDefinition.length; y++) {
+    const row = [];
+    const rowDef = mapDefinition[y];
+    
+    for (let x = 0; x < rowDef.length; x++) {
+      const tipo = rowDef[x];
       
-      // Celda central: cámaras congeladas (inicio)
-      if (x === 3 && y === 3) {
-        tipo = 'inicio';
-      } 
-      // Bordes: espacio exterior (inaccesible)
-      else if (x === 0 || x === 6 || y === 0 || y === 6) {
-        tipo = 'inaccesible';
-      }
-      // Celdas especiales
-      else if ((x === 1 && y === 1) || (x === 5 && y === 5)) {
-        tipo = 'estacion_oxigeno';
-      }
-      else if (x === 1 && y === 5) {
-        tipo = 'armeria';
-      }
-      else if (x === 5 && y === 1) {
-        tipo = 'seguridad';
-      }
-      else if (x === 2 && y === 4) {
-        tipo = 'control';
-      }
-      else if (x === 4 && y === 2) {
-        tipo = 'bahia_carga';
-      }
-      else if (x === 3 && y === 1) {
-        tipo = 'bahia_escape';
-      }
-      else if ((x === 2 && y === 2) || (x === 4 && y === 4)) {
-        tipo = 'evento_aleatorio';
-      }
-      else {
-        tipo = 'explorable';
+      // Verificar si esta celda es una puerta bloqueada
+      const esPuerta = tipo === 'puerta_bloqueada' || 
+                       (tipo === 'bahia_escape' && y === 14 && x === 0);
+      
+      let codigosRequeridos = 0;
+      
+      if (esPuerta) {
+        // Encontrar cuántos códigos requiere esta puerta
+        const puerta = puertasBloqueadas.find(p => p.y === y && p.x === x);
+        codigosRequeridos = puerta ? puerta.codigos : 0;
       }
       
-      mapa[y][x] = {
+      const cell = {
         x,
         y,
         tipo,
-        explorado: tipo === 'inicio',
-        puerta_bloqueada: false,
-        codigos_requeridos: 0
+        explorado: tipo === 'inicio',  // Solo el inicio está explorado inicialmente
+        puerta_bloqueada: esPuerta,
+        codigos_requeridos: codigosRequeridos
       };
+      
+      row.push(cell);
     }
+    
+    mapa.push(row);
   }
-  
-  // Añadir puertas bloqueadas
-  mapa[1][3].puerta_bloqueada = true;
-  mapa[1][3].codigos_requeridos = 6; // Bahía de escape requiere 6 códigos
   
   return mapa;
 }

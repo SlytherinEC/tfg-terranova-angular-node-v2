@@ -1,4 +1,4 @@
-<!-- src/app/game/game-board/game-board.component.html -->
+<!-- src/app/game/game-board/game-board.component.html - Actualizado -->
 <div class="game-container">
   <div class="game-header">
     <h1 class="game-title">TERRANOVA</h1>
@@ -29,23 +29,15 @@
 
   <div class="game-content">
     <div class="game-board">
-      <div class="hex-grid" *ngIf="gameState.mapa && gameState.mapa.length > 0">
-        <div class="hex-row" *ngFor="let row of gameState.mapa; let y = index">
-          <div class="hex-cell-container" *ngFor="let cell of row; let x = index" [class.offset]="y % 2 == 0">
-            <div [class]="getCellClass(cell)" (click)="onCellClick(cell)" [title]="cell.tipo">
-              <div class="hex-content">
-                <span *ngIf="cell.tipo === 'control'" class="cell-icon">CA</span>
-                <span *ngIf="cell.tipo === 'estacion_oxigeno'" class="cell-icon">O2</span>
-                <span *ngIf="cell.tipo === 'armeria'" class="cell-icon">ARM</span>
-                <span *ngIf="cell.tipo === 'bahia_escape'" class="cell-icon">ESC</span>
-                <span *ngIf="cell.tipo === 'bahia_carga'" class="cell-icon">CAR</span>
-                <span *ngIf="cell.tipo === 'evento_aleatorio'" class="cell-icon">?</span>
-                <span *ngIf="cell.tipo === 'inicio'" class="cell-icon">INI</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
+      <app-hex-map
+        *ngIf="gameState.mapa && gameState.mapa.length > 0"
+        [mapa]="gameState.mapa"
+        [posicionActual]="gameState.posicion_actual"
+        [codigosActivacion]="gameState.codigos_activacion"
+        (cellClick)="onCellClick($event)"
+      ></app-hex-map>
+      
       <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
         Cargando mapa...
       </div>
@@ -86,7 +78,8 @@
           <div class="weapon" *ngFor="let arma of gameState.armas">
             <div class="weapon-header">
               <span class="weapon-name">{{arma.nombre}}</span>
-              <span class="weapon-ammo">{{arma.municion}}/{{arma.municion_max}}</span>
+              <span class="weapon-ammo" *ngIf="arma.municion_max !== null">{{arma.municion}}/{{arma.municion_max}}</span>
+              <span class="weapon-ammo" *ngIf="arma.municion_max === null">∞</span>
             </div>
             <div class="weapon-stats">
               <span class="weapon-stat">DMG: {{arma.danio}}</span>

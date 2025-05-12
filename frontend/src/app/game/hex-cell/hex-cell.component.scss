@@ -1,0 +1,147 @@
+/* src/app/game/hex-cell/hex-cell.component.scss */
+.hex-cell {
+  width: 60px;
+  height: 69px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+
+  /* Forma hexagonal usando clip-path */
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background-color: rgba(10, 25, 47, 0.7);
+  border: 2px solid rgba(26, 122, 122, 0.5);
+  box-sizing: border-box;
+
+  &:hover:not(.inaccessible) {
+    transform: scale(1.1);
+    z-index: 10;
+  }
+}
+
+.hex-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.cell-icon {
+  color: #FFD54F;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  font-size: 0.6rem;
+}
+
+.code-requirement {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.6rem;
+  background-color: rgba(244, 67, 54, 0.7);
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* Estilos para diferentes tipos de celdas */
+.current-position {
+  background-color: #1A7A7A;
+  border-color: #FFD54F;
+}
+
+.explored {
+  background-color: rgba(26, 122, 122, 0.3);
+}
+
+.inaccessible {
+  background-color: #000;
+  cursor: not-allowed;
+}
+
+.inicio {
+  background-color: #1A7A7A;
+}
+
+.control {
+  background-color: rgba(139, 195, 74, 0.3);
+}
+
+.estacion_oxigeno {
+  background-color: rgba(33, 150, 243, 0.3);
+}
+
+.armeria {
+  background-color: rgba(244, 67, 54, 0.3);
+}
+
+.bahia_escape {
+  background-color: rgba(255, 235, 59, 0.3);
+}
+
+.bahia_carga {
+  background-color: rgba(156, 39, 176, 0.3);
+}
+
+.evento_aleatorio {
+  background-color: rgba(255, 152, 0, 0.3);
+}
+
+.seguridad {
+  background-color: rgba(63, 81, 181, 0.3);
+}
+
+.puerta_bloqueada {
+  border: 2px dashed #F44336;
+}
+
+.locked-door {
+  &::before {
+    content: '🔒';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+  }
+}
+
+/* Media queries para tamaños de pantalla más pequeños */
+@media screen and (max-width: 768px) {
+  .hex-cell {
+    width: 45px;
+    height: 52px;
+  }
+
+  .cell-icon {
+    font-size: 0.5rem;
+  }
+
+  .code-requirement {
+    width: 12px;
+    height: 12px;
+    font-size: 0.5rem;
+    top: 5px;
+    right: 5px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .hex-cell {
+    width: 35px;
+    height: 40px;
+  }
+
+  .cell-icon {
+    font-size: 0.4rem;
+  }
+}

@@ -179,15 +179,18 @@ const GameService = {
       };
     }
 
-    if (arma.municion <= 0) {
+    // Verificación de munición - Palanca tiene munición ilimitada
+    if (arma.nombre !== 'Palanca' && arma.municion <= 0) {
       return {
         exito: false,
         mensaje: 'El arma no tiene munición'
       };
     }
 
-    // Atacar
-    arma.municion -= 1;
+    // Atacar - Solo restar munición si no es la Palanca
+    if (arma.nombre !== 'Palanca') {
+      arma.municion -= 1;
+    }
 
     const dados = tirarDados(arma.precision);
     const resultado = sumarDados(dados);
@@ -392,71 +395,108 @@ const GameService = {
 // Función para obtener las celdas adyacentes en un mapa hexagonal
 function obtenerCeldasAdyacentes(mapa, posicion) {
   const { x, y } = posicion;
-  const esPar = y % 2 === 0;
-  
-  // Direcciones para filas pares e impares (Axial coordinate system)
-  const direcciones = esPar ? [
-    { x: 0, y: -1 },   // Norte
-    { x: 1, y: -1 },   // Noreste
-    { x: 1, y: 0 },    // Sureste
-    { x: 0, y: 1 },    // Sur
-    { x: -1, y: 0 },   // Suroeste
-    { x: -1, y: -1 }   // Noroeste
-  ] : [
-    { x: 0, y: -1 },   // Norte
-    { x: 1, y: 0 },    // Noreste
-    { x: 1, y: 1 },    // Sureste
-    { x: 0, y: 1 },    // Sur
-    { x: -1, y: 1 },   // Suroeste
-    { x: -1, y: 0 }    // Noroeste
-  ];
-  
+
+  // En un mapa hexagonal, las celdas adyacentes dependen de si la fila es par o impar
+  // Esto es por el offset que tienen los hexágonos
+  const filaImpar = y % 2 !== 0;
+
+  // Estas coordenadas relativas son para un sistema de coordenadas "odd-q" o "impar-q"
+  // donde las filas impares están desplazadas hacia la derecha
+  let direcciones;
+
+  if (filaImpar) {
+    // Para filas impares
+    direcciones = [
+      { dx: -1, dy: -1 }, // Arriba-izquierda
+      { dx: 0, dy: -1 },  // Arriba-derecha
+      { dx: -1, dy: 0 },  // Izquierda
+      { dx: 1, dy: 0 },   // Derecha
+      { dx: -1, dy: 1 },  // Abajo-izquierda
+      { dx: 0, dy: 1 }    // Abajo-derecha
+    ];
+  } else {
+    // Para filas pares
+    direcciones = [
+      { dx: 0, dy: -1 },  // Arriba-izquierda
+      { dx: 1, dy: -1 },  // Arriba-derecha
+      { dx: -1, dy: 0 },  // Izquierda
+      { dx: 1, dy: 0 },   // Derecha
+      { dx: 0, dy: 1 },   // Abajo-izquierda
+      { dx: 1, dy: 1 }    // Abajo-derecha
+    ];
+  }
+
   const adyacentes = [];
-  
+
+  // Verificar cada dirección adyacente
   for (const dir of direcciones) {
-    const nuevaX = x + dir.x;
-    const nuevaY = y + dir.y;
-    
-    // Verificar que esté dentro de los límites
-    if (nuevaY >= 0 && nuevaY < mapa.length && nuevaX >= 0 && nuevaX < mapa[0].length) {
-      adyacentes.push(mapa[nuevaY][nuevaX]);
+    const nx = x + dir.dx;
+    const ny = y + dir.dy;
+
+    // Verificar que las coordenadas estén dentro del mapa
+    if (ny >= 0 && ny < mapa.length) {
+      const fila = mapa[ny];
+      if (nx >= 0 && nx < fila.length) {
+        adyacentes.push({ x: nx, y: ny });
+      }
     }
   }
-  
+
   return adyacentes;
 }
 
 // Funciones auxiliares
+// Función actualizada para verificar si un movimiento es válido
 function esMovimientoValido(partida, coordenadas) {
   const { x, y } = coordenadas;
 
-  // Verificar límites del mapa
-  if (x < 0 || y < 0 || x >= partida.mapa[0].length || y >= partida.mapa.length) {
+  // Verificar si las coordenadas son válidas
+  if (y < 0 || y >= partida.mapa.length) {
+    console.log('Movimiento inválido: Coordenada Y fuera de rango');
     return false;
   }
 
-  const celda = partida.mapa[y][x];
+  // Verificar si X está dentro del rango de la fila
+  if (x < 0 || x >= partida.mapa[y].length) {
+    console.log('Movimiento inválido: Coordenada X fuera de rango');
+    return false;
+  }
 
-  // Verificar si es un hexágono accesible
+  // Encontrar la celda destino
+  const celda = partida.mapa[y].find(c => c.x === x && c.y === y);
+
+  if (!celda) {
+    console.log('Movimiento inválido: Celda no encontrada');
+    return false;
+  }
+
+  // Verificar si la celda es inaccesible
   if (celda.tipo === 'inaccesible') {
+    console.log('Movimiento inválido: Celda inaccesible');
     return false;
   }
 
   // Verificar si hay puerta bloqueada
   if (celda.puerta_bloqueada && partida.codigos_activacion < celda.codigos_requeridos) {
+    console.log('Movimiento inválido: Puerta bloqueada');
     return false;
   }
 
   // Verificar si hay combate activo
   if (partida.encuentro_actual) {
+    console.log('Movimiento inválido: Hay un combate activo');
     return false;
   }
 
-  // Verificar si la celda es adyacente a la posición actual
-  const celdasAdyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
-  const esAdyacente = celdasAdyacentes.some(c => c.x === x && c.y === y);
+  // Obtener las celdas adyacentes a la posición actual
+  const adyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
 
-  if (!esAdyacente && !celda.explorado) {
+  // Verificar si la celda está en las adyacentes o ya ha sido explorada
+  const esAdyacente = adyacentes.some(c => c.x === x && c.y === y);
+  const estaExplorada = celda.explorado;
+
+  if (!esAdyacente && !estaExplorada) {
+    console.log('Movimiento inválido: No es adyacente ni explorada');
     return false;
   }
 

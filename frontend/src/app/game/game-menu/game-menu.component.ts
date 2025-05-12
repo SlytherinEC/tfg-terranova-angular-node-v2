@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class GameMenuComponent implements OnInit {
   partidas: any[] = [];
-  dificultadSeleccionada: string = 'NORMAL';
+  dificultadSeleccionada: string = 'MUY_FACIL'; // Cambiado a MUY_FACIL como opción predeterminada
   cargando: boolean = false;
   error: string | null = null;
 

@@ -1,3 +1,4 @@
+// src/app/game/game-board/game-board.component.ts - Actualizado
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -6,11 +7,18 @@ import { GameService } from '../../services/game.service';
 import { GameState, MapCell } from '../../models/game.model';
 import { EventResolverComponent } from '../event-resolver/event-resolver.component';
 import { EncounterComponent } from '../encounter/encounter.component';
+import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
+import { MapService } from '../../services/map.service';
 
 @Component({
   selector: 'app-game-board',
   standalone: true,
-  imports: [CommonModule, EventResolverComponent, EncounterComponent],
+  imports: [
+    CommonModule,
+    EventResolverComponent,
+    EncounterComponent,
+    HexMapComponent
+  ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
 })
@@ -36,10 +44,9 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     fecha_creacion: '',
     fecha_actualizacion: ''
   };
-  
+
   idPartida!: number;
   gameSubscription: Subscription | null = null;
-  selectedCell: MapCell | null = null;
   mensaje: string | null = null;
   logMessages: string[] = [];
   isLoading: boolean = false;
@@ -51,6 +58,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   constructor(
     private gameService: GameService,
+    private mapService: MapService,
     private route: ActivatedRoute,
     private router: Router
   ) { }
@@ -87,7 +95,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         this.gameState = state;
         this.checkGameStatus();
       }
-      
+
       this.addLogMessage('Partida cargada desde caché local.');
       this.isLoading = false;
       return;
@@ -100,7 +108,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         if (state) {
           this.gameState = state;
         }
-        
+
         this.addLogMessage(`Partida cargada. ${this.getGameStatusMessage()}`);
         this.isLoading = false;
         this.checkGameStatus();
@@ -125,14 +133,14 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     if (!this.gameState || !this.gameState.capitan) {
       return 'Cargando estado del juego...';
     }
-    
+
     const { capitan, codigos_activacion, pasajeros } = this.gameState;
     return `Traje: ${capitan.traje}/6 | O2: ${capitan.oxigeno}/10 | Códigos: ${codigos_activacion}/6 | Pasajeros: ${pasajeros}`;
   }
 
   checkGameStatus(): void {
     if (!this.gameState) return;
-    
+
     if (this.gameState.estado !== 'EN_CURSO') {
       // Si la partida ha terminado, mostrar mensaje y opciones
       const resultado = this.gameState.estado === 'VICTORIA' ? 'VICTORIA' : 'DERROTA';
@@ -141,14 +149,11 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
     // Comprobar si hay un encuentro activo
     this.showEncounter = !!this.gameState.encuentro_actual;
-
-    // Comprobar si hay un evento activo
-    // Aquí se implementaría la lógica para detectar eventos
   }
 
   getFinalMessage(): string {
     if (!this.gameState) return '';
-    
+
     if (this.gameState.estado === 'VICTORIA') {
       return 'Has conseguido escapar de la nave con éxito.';
     } else {
@@ -156,9 +161,10 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     }
   }
 
-  onCellClick(cell: MapCell): void {
+  // Método que se llama cuando se hace clic en una celda del mapa hexagonal
+  onCellClick(cell: HexCell): void {
     if (!this.gameState) return;
-    
+
     // Si la partida ha terminado, no permitir acciones
     if (this.gameState.estado !== 'EN_CURSO') {
       return;
@@ -188,21 +194,21 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     this.explorarCelda(cell);
   }
 
-  explorarCelda(cell: MapCell): void {
+  explorarCelda(cell: HexCell): void {
     if (!this.idPartida) return;
-    
+
     this.isLoading = true;
     this.gameService.explorarHabitacion(this.idPartida, { x: cell.x, y: cell.y }).subscribe({
       next: (response) => {
         if (response.exito) {
           this.procesarResultadoExploracion(response);
-          
+
           // Actualizar el estado del juego
           const state = this.gameService.getGameState();
           if (state) {
             this.gameState = state;
           }
-          
+
           // Guardar estado automáticamente
           this.gameService.autoSaveGameState();
         } else {
@@ -220,7 +226,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   procesarResultadoExploracion(response: any): void {
     if (!response || !response.resultado) return;
-    
+
     const resultado = response.resultado;
 
     // Actualizar logs
@@ -249,7 +255,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   resolverCombate(armaSeleccionada: string, usarItem?: number): void {
     if (!this.idPartida) return;
-    
+
     this.isLoading = true;
     this.gameService.resolverCombate(this.idPartida, armaSeleccionada, usarItem).subscribe({
       next: (response) => {
@@ -293,7 +299,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   resolverEvento(opcionSeleccionada: string): void {
     if (!this.idPartida || !this.activeEvent) return;
-    
+
     this.isLoading = true;
     this.gameService.resolverEvento(
       this.idPartida,
@@ -335,20 +341,20 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   sacrificarPasajero(accion: string): void {
     if (!this.idPartida) return;
-    
+
     this.isLoading = true;
     this.gameService.sacrificarPasajero(this.idPartida, accion).subscribe({
       next: (response) => {
         if (response.mensaje) {
           this.addLogMessage(response.mensaje);
         }
-        
+
         // Actualizar el estado del juego
         const state = this.gameService.getGameState();
         if (state) {
           this.gameState = state;
         }
-        
+
         this.isLoading = false;
       },
       error: (err) => {
@@ -361,7 +367,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   usarItem(indiceItem: number): void {
     if (!this.idPartida) return;
-    
+
     this.isLoading = true;
     this.gameService.usarItem(this.idPartida, indiceItem).subscribe({
       next: (response) => {
@@ -369,7 +375,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
           if (response.mensaje) {
             this.addLogMessage(response.mensaje);
           }
-          
+
           // Actualizar el estado del juego
           const state = this.gameService.getGameState();
           if (state) {
@@ -390,54 +396,6 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   volver(): void {
     this.router.navigate(['/game']);
-  }
-
-  // Método para determinar si una celda es adyacente a la posición actual
-  isAdjacent(cell: MapCell): boolean {
-    if (!this.gameState || !this.gameState.posicion_actual) return false;
-    
-    const pos = this.gameState.posicion_actual;
-
-    // En un mapa hexagonal, las celdas adyacentes tienen patrones específicos
-    // Esta es una versión simplificada para un grid rectangular
-    const dx = Math.abs(cell.x - pos.x);
-    const dy = Math.abs(cell.y - pos.y);
-
-    return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
-  }
-
-  // Método para obtener la clase CSS según el tipo de celda
-  getCellClass(cell: MapCell): string {
-    if (!cell) return 'hex-cell';
-    
-    let classes = 'hex-cell';
-
-    // Posición actual
-    if (this.gameState && this.gameState.posicion_actual && 
-        cell.x === this.gameState.posicion_actual.x &&
-        cell.y === this.gameState.posicion_actual.y) {
-      classes += ' current-position';
-    }
-
-    // Celda explorada
-    if (cell.explorado) {
-      classes += ' explored';
-    }
-
-    // Tipo de celda
-    classes += ` ${cell.tipo}`;
-
-    // Puerta bloqueada
-    if (cell.puerta_bloqueada) {
-      classes += ' locked-door';
-    }
-
-    // Inaccesible
-    if (cell.tipo === 'inaccesible') {
-      classes += ' inaccessible';
-    }
-
-    return classes;
   }
 
   calcularRangoFinal(gameState: any): string {

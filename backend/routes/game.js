@@ -1,4 +1,4 @@
-// routes/game.js
+// backend/routes/game.js - Actualizado
 const express = require('express');
 const router = express.Router();
 const { verificarToken } = require('../middlewares/auth');
@@ -11,6 +11,10 @@ router.use(verificarToken);
 router.post('/nueva', gameController.nuevaPartida);
 router.get('/partidas', gameController.obtenerPartidas);
 router.get('/partidas/:id_partida', gameController.obtenerPartida);
+
+// Nuevas rutas para el mapa
+router.get('/mapas/:id_partida', gameController.obtenerMapa);
+router.put('/mapas/:id_partida', gameController.actualizarMapa);
 
 // Rutas de acciones de juego
 router.post('/partidas/:id_partida/explorar', gameController.explorarHabitacion);
