@@ -14,9 +14,11 @@ const Partida = {
         },
         pasajeros: 6,
         armas: [
-          { nombre: 'Blaster', danio: 1, precision: 2, municion: 6, municion_max: 6 },
-          { nombre: 'Rifle', danio: 2, precision: 1, municion: 4, municion_max: 4 },
-          { nombre: 'Lanzallamas', danio: 3, precision: 1, municion: 2, municion_max: 2 }
+          { nombre: 'Palanca', danio: 1, precision: 1, municion: null, municion_max: null }, // Munición ilimitada
+          { nombre: 'Pistola de Plasma', danio: 2, precision: 3, municion: 4, municion_max: 4 },
+          { nombre: 'Aguijón', danio: 3, precision: 2, municion: 3, municion_max: 3 },
+          { nombre: 'Pistola Laser', danio: 3, precision: 3, municion: 2, municion_max: 2 },
+          { nombre: 'Blaster', danio: 4, precision: 2, municion: 2, municion_max: 2 }
         ],
         mochila: [],
         mapa: generarMapaHexagonal(),

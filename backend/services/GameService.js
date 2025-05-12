@@ -179,15 +179,18 @@ const GameService = {
       };
     }
 
-    if (arma.municion <= 0) {
+    // Verificación de munición - Palanca tiene munición ilimitada
+    if (arma.nombre !== 'Palanca' && arma.municion <= 0) {
       return {
         exito: false,
         mensaje: 'El arma no tiene munición'
       };
     }
 
-    // Atacar
-    arma.municion -= 1;
+    // Atacar - Solo restar munición si no es la Palanca
+    if (arma.nombre !== 'Palanca') {
+      arma.municion -= 1;
+    }
 
     const dados = tirarDados(arma.precision);
     const resultado = sumarDados(dados);
@@ -392,15 +395,15 @@ const GameService = {
 // Función para obtener las celdas adyacentes en un mapa hexagonal
 function obtenerCeldasAdyacentes(mapa, posicion) {
   const { x, y } = posicion;
-  
+
   // En un mapa hexagonal, las celdas adyacentes dependen de si la fila es par o impar
   // Esto es por el offset que tienen los hexágonos
   const filaImpar = y % 2 !== 0;
-  
+
   // Estas coordenadas relativas son para un sistema de coordenadas "odd-q" o "impar-q"
   // donde las filas impares están desplazadas hacia la derecha
   let direcciones;
-  
+
   if (filaImpar) {
     // Para filas impares
     direcciones = [
@@ -422,14 +425,14 @@ function obtenerCeldasAdyacentes(mapa, posicion) {
       { dx: 1, dy: 1 }    // Abajo-derecha
     ];
   }
-  
+
   const adyacentes = [];
-  
+
   // Verificar cada dirección adyacente
   for (const dir of direcciones) {
     const nx = x + dir.dx;
     const ny = y + dir.dy;
-    
+
     // Verificar que las coordenadas estén dentro del mapa
     if (ny >= 0 && ny < mapa.length) {
       const fila = mapa[ny];
@@ -438,7 +441,7 @@ function obtenerCeldasAdyacentes(mapa, posicion) {
       }
     }
   }
-  
+
   return adyacentes;
 }
 
@@ -452,7 +455,7 @@ function esMovimientoValido(partida, coordenadas) {
     console.log('Movimiento inválido: Coordenada Y fuera de rango');
     return false;
   }
-  
+
   // Verificar si X está dentro del rango de la fila
   if (x < 0 || x >= partida.mapa[y].length) {
     console.log('Movimiento inválido: Coordenada X fuera de rango');
@@ -461,7 +464,7 @@ function esMovimientoValido(partida, coordenadas) {
 
   // Encontrar la celda destino
   const celda = partida.mapa[y].find(c => c.x === x && c.y === y);
-  
+
   if (!celda) {
     console.log('Movimiento inválido: Celda no encontrada');
     return false;
@@ -487,11 +490,11 @@ function esMovimientoValido(partida, coordenadas) {
 
   // Obtener las celdas adyacentes a la posición actual
   const adyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
-  
+
   // Verificar si la celda está en las adyacentes o ya ha sido explorada
   const esAdyacente = adyacentes.some(c => c.x === x && c.y === y);
   const estaExplorada = celda.explorado;
-  
+
   if (!esAdyacente && !estaExplorada) {
     console.log('Movimiento inválido: No es adyacente ni explorada');
     return false;
