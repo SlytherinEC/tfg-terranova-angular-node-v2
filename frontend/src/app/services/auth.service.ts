@@ -42,12 +42,12 @@ export class AuthService {
     if (!token) {
       return false;
     }
-    
+
     // Verificar si el token ha expirado
     try {
       const decodedToken = jwtDecode<TokenData>(token);
       const now = Date.now() / 1000;
-      
+
       if (decodedToken.exp && decodedToken.exp < now) {
         // Token expirado, pero aún podríamos tener un refresh token válido
         const refreshToken = this.obtenerRefreshToken();
@@ -55,7 +55,7 @@ export class AuthService {
           this.cerrarSesion();
           return false;
         }
-        
+
         try {
           const decodedRefresh = jwtDecode<TokenData>(refreshToken);
           return decodedRefresh.exp ? decodedRefresh.exp > now : false;
@@ -64,7 +64,7 @@ export class AuthService {
           return false;
         }
       }
-      
+
       return true;
     } catch {
       this.cerrarSesion();
@@ -84,9 +84,10 @@ export class AuthService {
 
   // Método para cerrar sesión. Elimina el token de localStorage
   cerrarSesion(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    
+    // localStorage.removeItem('token');
+    // localStorage.removeItem('refreshToken');
+    localStorage.clear(); // solo si no guardas otras cosas
+
     // Asegurarse de que la navegación se realiza solo si no estamos ya en login
     if (!this.router.url.includes('/login')) {
       this.router.navigate(['/login']);
@@ -138,7 +139,7 @@ export class AuthService {
       this.cerrarSesion();
     }
   }
-  
+
   // Iniciar verificación periódica de tokens
   private iniciarVerificacionTokens(): void {
     // Verificar tokens cada 30 segundos
@@ -146,7 +147,7 @@ export class AuthService {
       this.verificarTokens();
     }, 30000); // 30 segundos
   }
-  
+
   ngOnDestroy(): void {
     if (this.tokenVerificationTimer) {
       clearInterval(this.tokenVerificationTimer);

@@ -218,7 +218,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error al explorar:', err);
-        this.mensaje = 'Error al explorar la habitación';
+        this.mensaje = 'La habitación es inaccesible desde tu posición actual';
         this.isLoading = false;
       }
     });
