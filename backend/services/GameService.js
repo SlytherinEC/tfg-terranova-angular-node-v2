@@ -393,56 +393,18 @@ const GameService = {
 };
 
 // Función para obtener las celdas adyacentes en un mapa hexagonal
-function obtenerCeldasAdyacentes(mapa, posicion) {
+function obtenerCeldasAdyacentes(partida, posicion) {
   const { x, y } = posicion;
-
-  // En un mapa hexagonal, las celdas adyacentes dependen de si la fila es par o impar
-  // Esto es por el offset que tienen los hexágonos
-  const filaImpar = y % 2 !== 0;
-
-  // Estas coordenadas relativas son para un sistema de coordenadas "odd-q" o "impar-q"
-  // donde las filas impares están desplazadas hacia la derecha
-  let direcciones;
-
-  if (filaImpar) {
-    // Para filas impares
-    direcciones = [
-      { dx: -1, dy: -1 }, // Arriba-izquierda
-      { dx: 0, dy: -1 },  // Arriba-derecha
-      { dx: -1, dy: 0 },  // Izquierda
-      { dx: 1, dy: 0 },   // Derecha
-      { dx: -1, dy: 1 },  // Abajo-izquierda
-      { dx: 0, dy: 1 }    // Abajo-derecha
-    ];
-  } else {
-    // Para filas pares
-    direcciones = [
-      { dx: 0, dy: -1 },  // Arriba-izquierda
-      { dx: 1, dy: -1 },  // Arriba-derecha
-      { dx: -1, dy: 0 },  // Izquierda
-      { dx: 1, dy: 0 },   // Derecha
-      { dx: 0, dy: 1 },   // Abajo-izquierda
-      { dx: 1, dy: 1 }    // Abajo-derecha
-    ];
+  const key = `${x},${y}`;
+  
+  // Usar las adyacencias explícitamente definidas
+  if (partida.adyacencias && partida.adyacencias[key]) {
+    return partida.adyacencias[key];
   }
-
-  const adyacentes = [];
-
-  // Verificar cada dirección adyacente
-  for (const dir of direcciones) {
-    const nx = x + dir.dx;
-    const ny = y + dir.dy;
-
-    // Verificar que las coordenadas estén dentro del mapa
-    if (ny >= 0 && ny < mapa.length) {
-      const fila = mapa[ny];
-      if (nx >= 0 && nx < fila.length) {
-        adyacentes.push({ x: nx, y: ny });
-      }
-    }
-  }
-
-  return adyacentes;
+  
+  // Si no se encuentran adyacencias (no debería ocurrir), devolver array vacío
+  console.error('Adyacencias no encontradas para la posición', posicion);
+  return [];
 }
 
 // Funciones auxiliares
@@ -489,11 +451,21 @@ function esMovimientoValido(partida, coordenadas) {
   }
 
   // Obtener las celdas adyacentes a la posición actual
-  const adyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
+  const adyacentes = obtenerCeldasAdyacentes(partida, partida.posicion_actual);
+  // const adyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
+
+  // Debug para ver qué celdas se consideran adyacentes
+  console.log('Posición actual:', partida.posicion_actual);
+  console.log('Coordenadas destino:', coordenadas);
+  console.log('Celdas adyacentes:', adyacentes);
 
   // Verificar si la celda está en las adyacentes o ya ha sido explorada
-  const esAdyacente = adyacentes.some(c => c.x === x && c.y === y);
+  // const esAdyacente = adyacentes.some(adj => adj.x === x && adj.y === y);
+  const esAdyacente = adyacentes.some(adj => adj.x === coordenadas.x && adj.y === coordenadas.y);
   const estaExplorada = celda.explorado;
+
+  console.log('Es adyacente:', esAdyacente);
+  console.log('Está explorada:', estaExplorada);
 
   if (!esAdyacente && !estaExplorada) {
     console.log('Movimiento inválido: No es adyacente ni explorada');
