@@ -9,6 +9,7 @@ import { EventResolverComponent } from '../event-resolver/event-resolver.compone
 import { EncounterComponent } from '../encounter/encounter.component';
 import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
+import { StressManagerComponent } from '../stress-manager/stress-manager.component';
 
 @Component({
   selector: 'app-game-board',
@@ -17,7 +18,8 @@ import { MapService } from '../../services/map.service';
     CommonModule,
     EventResolverComponent,
     EncounterComponent,
-    HexMapComponent
+    HexMapComponent,
+    StressManagerComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -416,5 +418,44 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   // Métodos auxiliares
   objectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
+  }
+
+  // Añadir nuevos métodos para manejar el estrés
+  // Dentro de la clase GameBoardComponent
+  onUsarEstres(datos: { accion: string, indiceDado?: number }): void {
+    if (!this.idPartida) return;
+
+    this.isLoading = true;
+    this.gameService.usarEstres(this.idPartida, datos.accion, datos.indiceDado).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          if (response.mensaje) {
+            this.addLogMessage(response.mensaje);
+          }
+
+          // Si se modificó un dado en combate, actualizar la UI
+          if (datos.accion === 'modificar' || datos.accion === 'retirar') {
+            this.combatMessage = response.mensaje;
+            if (response.dados) {
+              this.currentDiceResult = response.dados[0];
+            }
+          }
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+        } else {
+          this.mensaje = response.mensaje || 'Error al usar estrés';
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al usar estrés:', err);
+        this.mensaje = 'Error al usar estrés';
+        this.isLoading = false;
+      }
+    });
   }
 }
