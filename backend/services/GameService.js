@@ -151,6 +151,7 @@ const GameService = {
   },
 
   // Manejar combate
+  // Resolver combate actualizado
   resolverCombate: (partida, opcionCombate) => {
     const { armaSeleccionada, usarItem } = opcionCombate;
     const encuentro = partida.encuentro_actual;
@@ -163,7 +164,7 @@ const GameService = {
     }
 
     // Verificar si se usa un ítem
-    if (usarItem) {
+    if (usarItem !== undefined && usarItem !== null) {
       const resultado = usarItemEnCombate(partida, usarItem);
       if (!resultado.exito) {
         return resultado;
@@ -192,9 +193,22 @@ const GameService = {
       arma.municion -= 1;
     }
 
-    const dados = tirarDados(arma.precision);
+    // Aplicar bonus de precisión temporal si existe
+    const precisionFinal = arma.precision + (partida.bonus_precision_temporal || 0);
+    partida.bonus_precision_temporal = 0; // Consumir el bonus después de usarlo
+
+    const dados = tirarDados(precisionFinal);
     const resultado = sumarDados(dados);
     const alien = ALIENS[encuentro.alien];
+
+    // Guardar información del combate para posible uso de estrés
+    partida.ultimo_combate = {
+      dados: dados,
+      suma: resultado,
+      arma: arma,
+      alien: alien,
+      objetivo: alien.objetivo
+    };
 
     let mensaje = `Has lanzado ${dados.join(' + ')} = ${resultado}. `;
 
@@ -205,11 +219,20 @@ const GameService = {
 
       // Comprobar si el alien ha sido derrotado
       if (encuentro.pg <= 0) {
-        // Actualizar logros
-        actualizarLogrosAlienDerrotado(partida, encuentro.alien);
+        // Actualizar contadores de aliens derrotados
+        if (!partida.aliens_derrotados) {
+          partida.aliens_derrotados = {};
+        }
+        if (!partida.aliens_derrotados[encuentro.alien]) {
+          partida.aliens_derrotados[encuentro.alien] = 0;
+        }
+        partida.aliens_derrotados[encuentro.alien] += 1;
 
         // Eliminar encuentro
         partida.encuentro_actual = null;
+
+        // Actualizar logros
+        actualizarLogrosAlienDerrotado(partida, encuentro.alien);
 
         return {
           exito: true,
@@ -223,9 +246,14 @@ const GameService = {
       mensaje += `Fallaste el disparo.`;
     }
 
-    // Ataque del alien
-    partida.capitan.traje -= alien.danio;
-    mensaje += ` El ${alien.nombre} te ha atacado causando ${alien.danio} puntos de daño a tu traje.`;
+    // Ataque del alien (a menos que se evada con un pasajero)
+    if (partida.evadir_proximo_ataque) {
+      mensaje += ` El pasajero evita el ataque del ${alien.nombre} esta vez.`;
+      partida.evadir_proximo_ataque = false; // Consumir la evasión
+    } else {
+      partida.capitan.traje -= alien.danio;
+      mensaje += ` El ${alien.nombre} te ha atacado causando ${alien.danio} puntos de daño a tu traje.`;
+    }
 
     // Comprobar derrota
     if (partida.capitan.traje <= 0) {
@@ -247,6 +275,7 @@ const GameService = {
   },
 
   // Sacrificar pasajero
+  // Sacrificar pasajero actualizado
   sacrificarPasajero: (partida, accion) => {
     if (partida.pasajeros <= 0) {
       return {
@@ -255,20 +284,34 @@ const GameService = {
       };
     }
 
+    // Registrar sacrificio para logros
+    if (!partida.pasajeros_sacrificados) {
+      partida.pasajeros_sacrificados = 0;
+    }
+
     // Tirar para reacción del pasajero
     const reaccion = tirarDado();
+    let mensaje = '';
 
     // Reacciones negativas
     if (reaccion === 1) {
       // Te roban munición y huyen
+      let municionRobada = false;
       partida.armas.forEach(arma => {
-        if (arma.municion > 0) arma.municion -= 1;
+        if (arma.nombre !== 'Palanca' && arma.municion > 0) {
+          arma.municion -= 1;
+          municionRobada = true;
+        }
       });
+
       partida.pasajeros -= 1;
+      mensaje = municionRobada ?
+        'El pasajero te roba munición y huye' :
+        'El pasajero intenta robarte munición pero no tienes, simplemente huye';
 
       return {
         exito: false,
-        mensaje: 'El pasajero te roba munición y huye',
+        mensaje,
         reaccion,
         partida
       };
@@ -277,10 +320,11 @@ const GameService = {
       // Gritan de miedo y llaman la atención
       partida.pasajeros -= 1;
       partida.proxima_habitacion_encuentro = true;
+      mensaje = 'El pasajero grita de miedo y huye, atrayendo la atención de los aliens';
 
       return {
         exito: false,
-        mensaje: 'El pasajero grita de miedo y huye, atrayendo la atención de los aliens',
+        mensaje,
         reaccion,
         partida
       };
@@ -288,15 +332,14 @@ const GameService = {
 
     // Reacción heroica (5-6)
     partida.pasajeros -= 1;
+    partida.pasajeros_sacrificados += 1;
 
     // Aplicar efecto según la acción solicitada
-    let mensaje = '';
-
     switch (accion) {
       case 'escapar_encuentro':
         if (partida.encuentro_actual) {
           partida.encuentro_actual = null;
-          mensaje = 'El pasajero se sacrifica, permitiéndote escapar del alien';
+          mensaje = 'El pasajero se sacrifica heroicamente, permitiéndote escapar del alien';
         } else {
           mensaje = 'El pasajero se sacrifica, pero no hay ningún encuentro del que escapar';
         }
@@ -304,8 +347,7 @@ const GameService = {
 
       case 'evadir_ataque':
         if (partida.encuentro_actual) {
-          // Evitar un ataque en combate
-          mensaje = 'El pasajero se interpone, evitando que el alien te ataque en este turno';
+          mensaje = 'El pasajero se interpone heroicamente, evitando que el alien te ataque en este turno';
           partida.evadir_proximo_ataque = true;
         } else {
           mensaje = 'El pasajero se sacrifica, pero no hay ningún ataque que evadir';
@@ -314,7 +356,7 @@ const GameService = {
 
       case 'recuperar_oxigeno':
         partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + 3);
-        mensaje = 'El pasajero te entrega su oxígeno, recuperas 3 puntos de O2';
+        mensaje = 'El pasajero te entrega heroicamente su oxígeno, recuperas 3 puntos de O2';
         break;
 
       default:
@@ -352,8 +394,8 @@ const GameService = {
         break;
 
       case 'Analgésico':
-        partida.capitan.estres = Math.max(0, partida.capitan.estres - 2);
-        mensaje = 'Has reducido 2 puntos de estrés';
+        partida.capitan.estres = Math.max(0, partida.capitan.estres - 3);
+        mensaje = 'Has reducido 3 puntos de estrés';
         break;
 
       case 'Visor':
@@ -389,6 +431,90 @@ const GameService = {
       mensaje,
       partida
     };
+  },
+
+  // Usar estrés
+  usarEstres: (partida, accion, indiceDado = null) => {
+    // Verificar nivel de estrés (máximo 3 según el documento)
+    if (partida.capitan.estres >= 3) {
+      return {
+        exito: false,
+        mensaje: 'Has alcanzado el nivel máximo de estrés'
+      };
+    }
+
+    let mensaje = '';
+
+    switch (accion) {
+      case 'modificar':
+        // Necesitamos el contexto del último combate almacenado
+        if (!partida.ultimo_combate || !partida.ultimo_combate.dados || indiceDado === null) {
+          return {
+            exito: false,
+            mensaje: 'No hay dados para modificar o no se especificó cuál modificar'
+          };
+        }
+
+        // Modificar el dado (+1 o -1)
+        const valorOriginal = partida.ultimo_combate.dados[indiceDado];
+        // Se permite modificar +1 o -1
+        const nuevoValor = Math.min(Math.max(valorOriginal + 1, 1), 6); // Por defecto +1, limitado entre 1-6
+        partida.ultimo_combate.dados[indiceDado] = nuevoValor;
+
+        // Recalcular suma
+        partida.ultimo_combate.suma = sumarDados(partida.ultimo_combate.dados);
+
+        mensaje = `Has usado 1 punto de estrés para modificar un dado de ${valorOriginal} a ${nuevoValor}`;
+        break;
+
+      case 'retirar':
+        // Necesitamos el contexto del último combate
+        if (!partida.ultimo_combate || !partida.ultimo_combate.dados || indiceDado === null) {
+          return {
+            exito: false,
+            mensaje: 'No hay dados para volver a tirar o no se especificó cuál'
+          };
+        }
+
+        // Volver a tirar el dado
+        const valorAnterior = partida.ultimo_combate.dados[indiceDado];
+        const nuevoValorDado = tirarDado();
+        partida.ultimo_combate.dados[indiceDado] = nuevoValorDado;
+
+        // Recalcular suma
+        partida.ultimo_combate.suma = sumarDados(partida.ultimo_combate.dados);
+
+        mensaje = `Has usado 1 punto de estrés para volver a tirar un dado: ${valorAnterior} -> ${nuevoValorDado}`;
+        break;
+
+      case 'reparar':
+        // Reparar 1 punto de traje
+        if (partida.capitan.traje >= 6) {
+          return {
+            exito: false,
+            mensaje: 'Tu traje ya está al máximo'
+          };
+        }
+
+        partida.capitan.traje += 1;
+        mensaje = 'Has usado 1 punto de estrés para reparar 1 punto de traje';
+        break;
+
+      default:
+        return {
+          exito: false,
+          mensaje: 'Acción de estrés no reconocida'
+        };
+    }
+
+    // Aumentar el estrés
+    partida.capitan.estres += 1;
+
+    return {
+      exito: true,
+      mensaje,
+      partida
+    };
   }
 };
 
@@ -396,12 +522,12 @@ const GameService = {
 function obtenerCeldasAdyacentes(partida, posicion) {
   const { x, y } = posicion;
   const key = `${x},${y}`;
-  
+
   // Usar las adyacencias explícitamente definidas
   if (partida.adyacencias && partida.adyacencias[key]) {
     return partida.adyacencias[key];
   }
-  
+
   // Si no se encuentran adyacencias (no debería ocurrir), devolver array vacío
   console.error('Adyacencias no encontradas para la posición', posicion);
   return [];
@@ -483,7 +609,7 @@ function revisitarHabitacion(partida, celda) {
     // Encuentro con alien
     return iniciarEncuentroAleatorio(partida);
   }
-  else if (resultado <= 5) {
+  else if (resultado <= 4) {
     // Habitación vacía, reduce estrés
     partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
     return {
@@ -938,6 +1064,7 @@ function calcularRangoFinal(partida) {
   if (totalLogros >= 2) return 'OFICIAL';
   return 'CADETE';
 }
+
 
 // Exportar el servicio con todos sus métodos
 module.exports = GameService;
