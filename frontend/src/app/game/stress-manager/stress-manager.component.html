@@ -1,0 +1,47 @@
+<div class="stress-manager">
+  <div class="stress-header">
+    <h3 class="section-title">ESTRES ({{estresActual}}/{{estresMaximo}})</h3>
+    <div class="stress-bar">
+      <div class="stress-fill" [style.width.%]="(estresActual / estresMaximo) * 100"></div>
+      <span class="stress-value">{{estresActual}}/{{estresMaximo}}</span>
+    </div>
+  </div>
+
+  <div class="stress-actions" *ngIf="puedeUsarEstres">
+    <!-- Acciones de estrés -->
+    <ng-container *ngIf="!accionSeleccionada">
+      <button class="stress-button" [disabled]="!puedeModificarDados" (click)="seleccionarAccion('modificar')">
+        MODIFICAR DADO (+1)
+      </button>
+      <button class="stress-button" [disabled]="!puedeModificarDados" (click)="seleccionarAccion('retirar')">
+        VOLVER A TIRAR
+      </button>
+      <button class="stress-button" [disabled]="!puedeRepararTraje" (click)="seleccionarAccion('reparar')">
+        REPARAR TRAJE (+1)
+      </button>
+    </ng-container>
+
+    <!-- Selección de dado -->
+    <div class="dice-selection" *ngIf="accionSeleccionada === 'modificar' || accionSeleccionada === 'retirar'">
+      <p class="selection-help">Selecciona un dado:</p>
+      <div class="dice-list">
+        <div *ngFor="let dado of dados; let i = index" class="dice-item" [class.selected]="dadoSeleccionado === i"
+          (click)="seleccionarDado(i)">
+          {{dado}}
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="stress-button confirm" [disabled]="dadoSeleccionado === null" (click)="confirmarAccion()">
+          CONFIRMAR
+        </button>
+        <button class="stress-button cancel" (click)="cancelarAccion()">
+          CANCELAR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="stress-message" *ngIf="!puedeUsarEstres && estresActual >= estresMaximo">
+    Has alcanzado el nivel máximo de estrés.
+  </p>
+</div>
