@@ -15,6 +15,7 @@ export class GameService {
   gameState$ = this.gameStateSubject.asObservable();
 
   constructor(private http: HttpClient, private authService: AuthService) { }
+
   // Obtener estado actual del juego
   getGameState(): any {
     return this.gameStateSubject.value;
@@ -123,6 +124,34 @@ export class GameService {
     );
   }
 
+  // NUEVA FUNCIÓN: Usar estrés
+  usarEstres(idPartida: number, accion: string, indiceDado?: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/usar-estres`,
+      { accion, indice_dado: indiceDado },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // NUEVA FUNCIÓN: Obtener logros
+  obtenerLogros(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/logros`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // NUEVA FUNCIÓN: Obtener estadísticas
+  obtenerEstadisticas(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/estadisticas`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
   // Añadir método para guardar estado automáticamente
   autoSaveGameState(): void {
     const currentState = this.gameStateSubject.value;
@@ -155,5 +184,4 @@ export class GameService {
     }
     return false;
   }
-
 }
