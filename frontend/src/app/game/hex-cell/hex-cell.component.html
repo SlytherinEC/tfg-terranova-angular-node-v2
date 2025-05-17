@@ -1,0 +1,27 @@
+<!-- src/app/game/hex-cell/hex-cell.component.html -->
+<div class="hex-cell" [ngClass]="{
+    'current-position': isCurrentPosition,
+    'explored': cell.explorado,
+    'locked-door': cell.puerta_bloqueada,
+    'inaccessible': cell.tipo === 'inaccesible',
+    'accessible': isAccessible(),
+    'inicio': cell.tipo === 'inicio',
+    'estacion_oxigeno': cell.tipo === 'estacion_oxigeno',
+    'armeria': cell.tipo === 'armeria',
+    'bahia_escape': cell.tipo === 'bahia_escape',
+    'bahia_carga': cell.tipo === 'bahia_carga',
+    'control': cell.tipo === 'control',
+    'seguridad': cell.tipo === 'seguridad',
+    'evento_aleatorio': cell.tipo === 'evento_aleatorio',
+    'puerta_bloqueada': cell.puerta_bloqueada
+  }" (click)="onClick()"
+  [title]="cell.tipo + (cell.puerta_bloqueada ? ' - Códigos requeridos: ' + cell.codigos_requeridos : '')">
+  <div class="hex-content">
+    <span class="cell-icon" *ngIf="getIcon()">{{ getIcon() }}</span>
+
+    <!-- Mostrar requisito de códigos para puertas bloqueadas -->
+    <div class="code-requirement" *ngIf="cell.puerta_bloqueada">
+      {{ cell.codigos_requeridos }}
+    </div>
+  </div>
+</div>

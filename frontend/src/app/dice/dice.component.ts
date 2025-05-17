@@ -1,5 +1,5 @@
 // dice.component.ts
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { trigger, state, style, animate, transition } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 
@@ -18,7 +18,7 @@ import { CommonModule } from '@angular/common';
   ]
 })
 export class DiceComponent {
-  resultado: number = 1;
+  @Input() resultado: number = 1;
   rotateX: number = 0;
   rotateY: number = 0;
   isRolling: boolean = false;

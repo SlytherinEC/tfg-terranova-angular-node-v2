@@ -1,0 +1,17 @@
+<div class="event-container" *ngIf="event">
+  <div class="event-header">
+    <h2 class="event-title">EVENTO ESPECIAL</h2>
+    <div class="event-number">{{event.numero}}</div>
+  </div>
+
+  <div class="event-description">
+    {{event.mensaje}}
+  </div>
+
+  <div class="event-options" *ngIf="event.opciones && event.opciones.length > 0">
+    <button *ngFor="let opcion of event.opciones" class="event-option-button" [disabled]="isLoading"
+      (click)="onOptionSelect(opcion.id)">
+      {{opcion.texto}}
+    </button>
+  </div>
+</div>

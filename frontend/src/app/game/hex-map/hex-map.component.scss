@@ -1,0 +1,50 @@
+/* src/app/game/hex-map/hex-map.component.scss */
+.hex-map-container {
+  width: 100%;
+  overflow: auto;
+  padding: 1rem;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.hex-grid {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin: 0 auto;
+  max-width: 1400px;
+}
+
+.hex-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: -14px; /* Separación vertical negativa para acercar las filas sin superposición */
+  position: relative;
+}
+
+/* 
+ * Nota: No usamos el offset tradicional de los hexágonos para que no queden montados
+ * En lugar de usar margin-left en .offset-row, manejamos el desplazamiento con el spacer
+ */
+
+.hex-cell-container {
+  margin: 0 1px; /* Separación horizontal negativa para que los hexágonos se vean conectados */
+}
+
+.spacer {
+  height: 1px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+/* Media queries para pantallas pequeñas */
+@media screen and (max-width: 768px) {
+  .hex-map-container {
+    padding: 1rem;
+  }
+  
+  .hex-cell-container {
+    margin: 0 0.15rem;
+  }
+}

@@ -1,0 +1,161 @@
+<div class="dashboard-container">
+  <div class="dashboard-content">
+    <!-- Header con información del usuario y menú hamburguesa -->
+    <div class="header">
+      <h1 class="dashboard-title">GESTIÓN DE USUARIOS</h1>
+      
+      <div class="user-info">
+        <div class="user-profile">
+          <img [src]="'../../assets/images/users/' + imagenPerfil" alt="Perfil" class="profile-image" 
+               onerror="this.src='../../assets/images/users/default_user.png'">
+          <span class="user-name">{{ nombreUsuario }}</span>
+        </div>
+        
+        <!-- Botón para menú móvil -->
+        <div class="menu-toggle" (click)="toggleMenu()">
+          <span class="menu-text">MENU</span>
+          <div class="hamburger" [class.open]="menuAbierto">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de navegación flotante -->
+    <div class="navbar-container" [class.show-navbar]="menuAbierto">
+      <nav class="navbar">
+        <button class="pixel-button nav-button" (click)="volverDashboard()">VOLVER</button>
+        <button class="pixel-button nav-button" (click)="navegarA('/dashboard')">DASHBOARD</button>
+        <button class="pixel-button nav-button" (click)="navegarA('/perfil')">PERFIL</button>
+        <button class="pixel-button nav-button create-button" (click)="mostrarFormularioCrear()">NUEVO USUARIO</button>
+      </nav>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="game-content">
+      <!-- Mensajes de error y éxito -->
+      <div *ngIf="mensajeError" class="mensaje error-message">{{ mensajeError }}</div>
+      <div *ngIf="mensajeExito" class="mensaje success-message">{{ mensajeExito }}</div>
+
+      <!-- Estado de carga -->
+      <div *ngIf="cargando" class="loading">Cargando...</div>
+
+      <!-- Formulario de usuario (crear/editar) -->
+      <div *ngIf="modoFormulario === 'crear' || modoFormulario === 'editar'" class="formulario-container">
+        <h2 class="form-title">{{ modoFormulario === 'crear' ? 'Crear Usuario' : 'Editar Usuario' }}</h2>
+        
+        <form [formGroup]="formularioUsuario" (ngSubmit)="guardarUsuario()" class="formulario-content">
+          <div class="form-group">
+            <label for="nombre">Nombre de Usuario:</label>
+            <input type="text" id="nombre" formControlName="nombre" class="form-input">
+            <div *ngIf="formularioUsuario.get('nombre')?.invalid && formularioUsuario.get('nombre')?.touched" class="error-text">
+              Nombre de usuario requerido (mínimo 3 caracteres)
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" formControlName="email" class="form-input">
+            <div *ngIf="formularioUsuario.get('email')?.invalid && formularioUsuario.get('email')?.touched" class="error-text">
+              Email válido requerido
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="id_rol">Rol:</label>
+            <select id="id_rol" formControlName="id_rol" class="form-input">
+              <option [value]="1">Administrador</option>
+              <option [value]="2">Usuario</option>
+            </select>
+          </div>
+          
+          <div *ngIf="modoFormulario === 'crear'" class="form-group">
+            <label for="contrasena">Contraseña:</label>
+            <input type="password" id="contrasena" formControlName="contrasena" class="form-input">
+            <div *ngIf="formularioUsuario.get('contrasena')?.invalid && formularioUsuario.get('contrasena')?.touched" class="error-text">
+              Contraseña requerida (mínimo 6 caracteres)
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="pixel-button action-button" [disabled]="formularioUsuario.invalid">
+              {{ modoFormulario === 'crear' ? 'CREAR' : 'GUARDAR' }}
+            </button>
+            <button type="button" class="pixel-button action-button cancel-button" (click)="cancelarFormulario()">
+              CANCELAR
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Formulario de cambio de contraseña -->
+      <div *ngIf="modoFormulario === 'contrasena'" class="formulario-container">
+        <h2 class="form-title">Cambiar Contraseña - {{ usuarioSeleccionado?.nombre }}</h2>
+        
+        <form [formGroup]="formularioContrasena" (ngSubmit)="cambiarContrasena()" class="formulario-content">
+          <div class="form-group">
+            <label for="nuevaContrasena">Nueva Contraseña:</label>
+            <input type="password" id="nuevaContrasena" formControlName="nuevaContrasena" class="form-input">
+            <div *ngIf="formularioContrasena.get('nuevaContrasena')?.invalid && formularioContrasena.get('nuevaContrasena')?.touched" class="error-text">
+              Contraseña requerida (mínimo 6 caracteres)
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="pixel-button action-button" [disabled]="formularioContrasena.invalid">
+              CAMBIAR CONTRASEÑA
+            </button>
+            <button type="button" class="pixel-button action-button cancel-button" (click)="cancelarFormulario()">
+              CANCELAR
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tabla de usuarios -->
+      <div *ngIf="!modoFormulario && usuarios.length > 0" class="table-wrapper">
+        <table class="usuarios-tabla">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let usuario of usuarios">
+              <td>{{ usuario.id_usuario }}</td>
+              <td>{{ usuario.nombre }}</td>
+              <td>{{ usuario.email }}</td>
+              <td>{{ getNombreRol(usuario.id_rol) }}</td>
+              <td>{{ usuario.fecha_registro | date:'dd/MM/yy' }}</td>
+              <td class="acciones">
+                <button class="pixel-button action-mini edit-button" (click)="mostrarFormularioEditar(usuario)">
+                  EDIT
+                </button>
+                <button class="pixel-button action-mini password-button" (click)="mostrarFormularioContrasena(usuario)">
+                  PASS
+                </button>
+                <button class="pixel-button action-mini delete-button" 
+                        [disabled]="esUsuarioActual(usuario.id_usuario)"
+                        (click)="eliminarUsuario(usuario)">
+                  DEL
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mensaje si no hay usuarios -->
+      <div *ngIf="!modoFormulario && !cargando && usuarios.length === 0" class="no-data">
+        No hay usuarios registrados en el sistema.
+      </div>
+    </div>
+  </div>
+</div>

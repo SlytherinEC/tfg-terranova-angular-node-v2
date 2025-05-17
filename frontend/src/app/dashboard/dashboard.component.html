@@ -27,7 +27,8 @@
     <div class="navbar-container" [class.show-navbar]="menuAbierto">
       <nav class="navbar">
         <button class="pixel-button nav-button" (click)="navegarA('/perfil')">Perfil</button>
-        <button class="pixel-button nav-button" (click)="navegarA('/iniciar-partida')">Iniciar Partida</button>
+        <!-- <button class="pixel-button nav-button" (click)="navegarA('/iniciar-partida')">Iniciar Partida</button> -->
+        <button class="pixel-button nav-button" (click)="navegarA('/game')">Iniciar Partida</button>
         <button class="pixel-button nav-button" (click)="navegarA('/ranking')">Ranking</button>
         <!-- Mostrar botón de administración solo si es admin -->
         <button *ngIf="esAdmin" class="pixel-button nav-button admin-button" (click)="navegarA('/admin')">Administrar</button>
@@ -37,7 +38,16 @@
 
     <!-- Contenido principal -->
     <div class="game-content">
-      <app-dice></app-dice>
+      <div class="game-promo">
+        <h2 class="game-title">TERRANOVA</h2>
+        <p class="game-description">
+          ¡Embárcate en una aventura de supervivencia espacial! Recupera los 6 códigos de activación para escapar de la nave infestada de alienígenas.
+        </p>
+        <button class="pixel-button play-button" (click)="navegarAJuego()">
+          JUGAR AHORA
+        </button>
+      </div>
+      <!-- <app-dice></app-dice> -->
     </div>
   </div>
 </div>

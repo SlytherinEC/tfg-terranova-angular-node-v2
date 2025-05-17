@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { AuthService } from '../auth.service';
+import { AuthService } from './auth.service';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -12,19 +12,29 @@ export class UserService {
 
   constructor(private http: HttpClient, private authService: AuthService) { }
 
-  obtenerUsuarioPorId(id: number): Observable<any> {
-    const headers = new HttpHeaders({
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
       Authorization: `Bearer ${this.authService.obtenerToken()}`
     });
+  }
 
-    return this.http.get<any>(`${this.apiUrl}/${id}`, { headers });
+  obtenerUsuarioPorId(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
 
   obtenerPerfil(): Observable<any> {
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${this.authService.obtenerToken()}`
-    });
-    return this.http.get<any>(`${this.apiUrl}/perfil`, { headers });
+    return this.http.get<any>(`${this.apiUrl}/perfil`, { headers: this.getHeaders() });
   }
 
+  actualizarPerfil(datos: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/perfil`, datos, { headers: this.getHeaders() });
+  }
+
+  cambiarContrasena(contrasenaActual: string, nuevaContrasena: string): Observable<any> {
+    const datos = {
+      contrasenaActual,
+      nuevaContrasena
+    };
+    return this.http.patch<any>(`${this.apiUrl}/cambiar-contrasena`, datos, { headers: this.getHeaders() });
+  }
 }
