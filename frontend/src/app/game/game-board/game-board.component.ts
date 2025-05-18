@@ -9,6 +9,8 @@ import { EventResolverComponent } from '../event-resolver/event-resolver.compone
 import { EncounterComponent } from '../encounter/encounter.component';
 import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
+import { StressManagerComponent } from '../stress-manager/stress-manager.component';
+import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
 
 @Component({
   selector: 'app-game-board',
@@ -17,7 +19,9 @@ import { MapService } from '../../services/map.service';
     CommonModule,
     EventResolverComponent,
     EncounterComponent,
-    HexMapComponent
+    HexMapComponent,
+    StressManagerComponent,
+    ArmoryResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -55,6 +59,10 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   activeEvent: any = null;
   combatMessage: string | null = null;
   currentDiceResult: number = 1;
+
+  // Propiedades de la armería
+  showArmeria: boolean = false;
+  armeriaOptions: any[] = [];
 
   constructor(
     private gameService: GameService,
@@ -249,7 +257,10 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         };
         break;
 
-      // Otros tipos de resultados...
+      case 'armeria':
+        this.showArmeria = true;
+        this.armeriaOptions = resultado.opciones;
+        break;      // Otros tipos de resultados...
     }
   }
 
@@ -417,4 +428,73 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   objectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
   }
-}
+
+  // Añadir nuevos métodos para manejar el estrés
+  // Dentro de la clase GameBoardComponent
+  onUsarEstres(datos: { accion: string, indiceDado?: number }): void {
+    if (!this.idPartida) return;
+
+    this.isLoading = true;
+    this.gameService.usarEstres(this.idPartida, datos.accion, datos.indiceDado).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          if (response.mensaje) {
+            this.addLogMessage(response.mensaje);
+          }
+
+          // Si se modificó un dado en combate, actualizar la UI
+          if (datos.accion === 'modificar' || datos.accion === 'retirar') {
+            this.combatMessage = response.mensaje;
+            if (response.dados) {
+              this.currentDiceResult = response.dados[0];
+            }
+          }
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+        } else {
+          this.mensaje = response.mensaje || 'Error al usar estrés';
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al usar estrés:', err);
+        this.mensaje = 'Error al usar estrés';
+        this.isLoading = false;
+      }
+    });
+  }
+
+// método para manejar la selección de opciones de la armería
+onArmeriaOptionSelect(opcion: string): void {
+  if (!this.idPartida) return;
+
+  this.isLoading = true;
+  this.gameService.resolverArmeria(this.idPartida, opcion).subscribe({
+    next: (response) => {
+      if (response.exito) {
+        this.addLogMessage(response.mensaje);
+        
+        // Actualizar el estado del juego
+        const state = this.gameService.getGameState();
+        if (state) {
+          this.gameState = state;
+        }
+        
+        // Ocultar panel de armería
+        this.showArmeria = false;
+      } else {
+        this.mensaje = response.mensaje || 'Error al resolver armería';
+      }
+      this.isLoading = false;
+    },
+    error: (err) => {
+      console.error('Error al resolver armería:', err);
+      this.mensaje = 'Error al resolver armería';
+      this.isLoading = false;
+    }
+  });
+}}
