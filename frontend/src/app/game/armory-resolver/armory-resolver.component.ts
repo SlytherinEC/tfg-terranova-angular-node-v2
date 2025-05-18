@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -8,13 +8,18 @@ import { CommonModule } from '@angular/common';
   templateUrl: './armory-resolver.component.html',
   styleUrl: './armory-resolver.component.scss'
 })
-export class ArmoryResolverComponent {
+export class ArmoryResolverComponent implements OnInit {
   @Input() options: any[] = [];
   @Input() isLoading: boolean = false;
   @Output() optionSelected = new EventEmitter<string>();
 
   // Para mostrar descripción de la opción al pasar el ratón
   hoveredOption: string | null = null;
+
+  ngOnInit() {
+    // Depuración para verificar que las opciones lleguen correctamente
+    console.log('Armory options received:', this.options);
+  }
 
   onOptionSelect(optionId: string): void {
     if (this.isLoading) return;

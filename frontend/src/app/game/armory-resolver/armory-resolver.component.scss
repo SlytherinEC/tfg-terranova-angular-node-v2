@@ -45,7 +45,10 @@
 }
 
 .option-button {
-  padding: 1rem;
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 15px;
   font-size: 0.8rem;
   background-color: rgba(10, 25, 47, 0.7);
   border: 2px solid #1A7A7A;
@@ -54,21 +57,21 @@
   cursor: pointer;
   font-family: 'Press Start 2P', 'Courier New', monospace;
   transition: all 0.2s;
+  text-align: center;
 
   &:hover:not(:disabled) {
     background-color: rgba(26, 122, 122, 0.3);
     transform: scale(1.02);
   }
+}
 
-  &.hovered {
-    background-color: rgba(26, 122, 122, 0.3);
-    border-color: #FFD54F;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+.no-options-message {
+  color: #f44336;
+  text-align: center;
+  padding: 1rem;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px dashed #f44336;
+  border-radius: 5px;
 }
 
 .option-description {
@@ -83,7 +86,7 @@
 .armory-image {
   // Puedes añadir una imagen decorativa de fondo
   height: 80px;
-  background-image: url('../../../assets/images/armory.jpeg'); 
+  background-image: url('../../../assets/images/armory.jpeg');
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;

@@ -10,11 +10,15 @@
     </p>
 
     <div class="options-container">
-      <button *ngFor="let option of options" class="option-button" [class.hovered]="hoveredOption === option.id"
-        [disabled]="isLoading" (click)="onOptionSelect(option.id)" (mouseenter)="setHoveredOption(option.id)"
-        (mouseleave)="setHoveredOption(null)">
-        {{ option.texto }}
-      </button>
+      <ng-container *ngIf="options && options.length > 0; else noOptions">
+        <button *ngFor="let option of options" class="option-button" [disabled]="isLoading"
+          (click)="onOptionSelect(option.id)">
+          {{ option.texto }}
+        </button>
+      </ng-container>
+      <ng-template #noOptions>
+        <p class="no-options-message">No hay opciones disponibles en este momento.</p>
+      </ng-template>
     </div>
 
     <div class="option-description" *ngIf="hoveredOption">
@@ -23,6 +27,6 @@
   </div>
 
   <div class="armory-image">
-    
+
   </div>
 </div>
