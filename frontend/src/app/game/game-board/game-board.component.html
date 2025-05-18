@@ -153,7 +153,7 @@
   <!-- Panel de armería -->
   <div class="modal-overlay" *ngIf="showArmeria">
     <div class="modal-content">
-      <app-armory-resolver [options]="armeriaOptions" [isLoading]="isLoading"
+      <app-armory-resolver #armeriaSelector [options]="armeriaOptions" [isLoading]="isLoading"
         (optionSelected)="onArmeriaOptionSelect($event)">
       </app-armory-resolver>
     </div>

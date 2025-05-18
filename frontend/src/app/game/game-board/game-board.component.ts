@@ -1,5 +1,5 @@
 // src/app/game/game-board/game-board.component.ts - Actualizado
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -63,6 +63,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   // Propiedades de la armería
   showArmeria: boolean = false;
   armeriaOptions: any[] = [];
+  @ViewChild('armeriaSelector') armeriaSelector: any;
 
   constructor(
     private gameService: GameService,
@@ -225,8 +226,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
       error: (err) => {
+        // Asegurarse de mostrar el mensaje de error del servidor si está disponible
+        if (err.error && err.error.mensaje) {
+          this.mensaje = err.error.mensaje;
+        } else {
+          this.mensaje = 'Error al explorar la habitación';
+        }
         console.error('Error al explorar:', err);
-        this.mensaje = 'La habitación es inaccesible desde tu posición actual';
         this.isLoading = false;
       }
     });
@@ -483,12 +489,30 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   }
 
   // método para manejar la selección de opciones de la armería
-  onArmeriaOptionSelect(opcion: string): void {
+  onArmeriaOptionSelect(datos: { opcion: string, arma?: string }): void {
     if (!this.idPartida) return;
 
+    // Si el usuario decidió salir
+    if (datos.opcion === 'salir') {
+      this.showArmeria = false;
+      return;
+    }
+
     this.isLoading = true;
-    this.gameService.resolverArmeria(this.idPartida, opcion).subscribe({
+    this.gameService.resolverArmeria(this.idPartida, datos.opcion, datos.arma).subscribe({
       next: (response) => {
+        // Si requiere selección de arma
+        if (response.requiereSeleccionArma && response.armasDisponibles) {
+          this.isLoading = false;
+          // Pasar las armas disponibles al componente
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarArmas(response.armasDisponibles);
+          } else {
+            this.mensaje = 'Error al mostrar selección de armas';
+          }
+          return;
+        }
+
         if (response.exito) {
           this.addLogMessage(response.mensaje);
 
@@ -498,10 +522,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
             this.gameState = state;
           }
 
-          // Ocultar panel de armería
-          this.showArmeria = false;
+          // Mostrar el mensaje en el componente en lugar de cerrar
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarResultado(response.mensaje);
+          }
         } else {
           this.mensaje = response.mensaje || 'Error al resolver armería';
+          this.showArmeria = false;
         }
         this.isLoading = false;
       },
@@ -509,6 +536,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         console.error('Error al resolver armería:', err);
         this.mensaje = 'Error al resolver armería';
         this.isLoading = false;
+        this.showArmeria = false;
       }
     });
   }
