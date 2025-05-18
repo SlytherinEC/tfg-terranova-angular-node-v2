@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -149,28 +149,35 @@ export class GameService {
     );
   }
 
-  // NUEVA FUNCIÓN: Obtener estadísticas
+  // Obtener estadísticas
   obtenerEstadisticas(idPartida: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/partidas/${idPartida}/estadisticas`,
       { headers: this.authService.obtenerHeadersAuth() }
     );
   }
 
-  // NUEVA FUNCIÓN: Resolver armería
-  resolverArmeria(idPartida: number, opcion: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/resolver-armeria`,
-      { opcion },
-      { headers: this.authService.obtenerHeadersAuth() }
+  // Resolver armería
+  resolverArmeria(idPartida: number, opcion: string, armaSeleccionada?: string): Observable<any> {
+    // Incluir la cabecera de autorización correctamente
+    const headers = this.authService.obtenerHeadersAuth();
+
+    return this.http.post(
+      `${this.apiUrl}/partidas/${idPartida}/resolver-armeria`,
+      { opcion, armaSeleccionada }, // Asegurarse de que estos parámetros estén bien formateados
+      { headers }
     ).pipe(
       tap((response: any) => {
-        if (response.exito) {
+        if (response.exito && !response.requiereSeleccionArma) {
           this.gameStateSubject.next(response.partida);
         }
+      }),
+      catchError(error => {
+        console.error('Error en resolverArmeria:', error);
+        return throwError(() => error);
       })
     );
   }
-
-  // Añadir método para guardar estado automáticamente
+  // método para guardar estado automáticamente
   autoSaveGameState(): void {
     const currentState = this.gameStateSubject.value;
     if (currentState && currentState.id_partida) {
