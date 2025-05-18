@@ -18,6 +18,15 @@ export interface GameState {
   logros: { [key: string]: boolean };
   fecha_creacion: string;
   fecha_actualizacion: string;
+  
+  // Añadir esta propiedad:
+  ultimo_combate?: {
+    dados: number[];
+    suma: number;
+    arma: Weapon;
+    alien: Alien;
+    objetivo: number;
+  };
 }
 
 export interface Captain {

@@ -1,5 +1,5 @@
 // src/app/game/game-board/game-board.component.ts - Actualizado
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -9,6 +9,8 @@ import { EventResolverComponent } from '../event-resolver/event-resolver.compone
 import { EncounterComponent } from '../encounter/encounter.component';
 import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
+import { StressManagerComponent } from '../stress-manager/stress-manager.component';
+import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
 
 @Component({
   selector: 'app-game-board',
@@ -17,7 +19,9 @@ import { MapService } from '../../services/map.service';
     CommonModule,
     EventResolverComponent,
     EncounterComponent,
-    HexMapComponent
+    HexMapComponent,
+    StressManagerComponent,
+    ArmoryResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -55,6 +59,11 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   activeEvent: any = null;
   combatMessage: string | null = null;
   currentDiceResult: number = 1;
+
+  // Propiedades de la armería
+  showArmeria: boolean = false;
+  armeriaOptions: any[] = [];
+  @ViewChild('armeriaSelector') armeriaSelector: any;
 
   constructor(
     private gameService: GameService,
@@ -217,8 +226,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
       error: (err) => {
+        // Asegurarse de mostrar el mensaje de error del servidor si está disponible
+        if (err.error && err.error.mensaje) {
+          this.mensaje = err.error.mensaje;
+        } else {
+          this.mensaje = 'Error al explorar la habitación';
+        }
         console.error('Error al explorar:', err);
-        this.mensaje = 'La habitación es inaccesible desde tu posición actual';
         this.isLoading = false;
       }
     });
@@ -249,7 +263,24 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         };
         break;
 
-      // Otros tipos de resultados...
+      case 'armeria':
+        this.showArmeria = true;
+        // Verificar y registrar el estado de las opciones
+        console.log('Opciones recibidas de la armería:', resultado.opciones);
+        this.armeriaOptions = resultado.opciones || [];
+        // Si aún no hay opciones, crear opciones predeterminadas
+        if (!this.armeriaOptions || this.armeriaOptions.length === 0) {
+          console.warn('Sin opciones de armería, usando valores predeterminados');
+          this.armeriaOptions = [
+            { id: 'recargar_armas', texto: 'Recargar todas las armas' },
+            { id: 'reparar_traje', texto: 'Reparar todo el traje' },
+            { id: 'recargar_y_reparar', texto: 'Recargar 1 arma y 3 ptos de traje' }
+          ];
+        }
+        break;
+
+      // Otros casos...
+
     }
   }
 
@@ -416,5 +447,97 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   // Métodos auxiliares
   objectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
+  }
+
+  // Añadir nuevos métodos para manejar el estrés
+  // Dentro de la clase GameBoardComponent
+  onUsarEstres(datos: { accion: string, indiceDado?: number }): void {
+    if (!this.idPartida) return;
+
+    this.isLoading = true;
+    this.gameService.usarEstres(this.idPartida, datos.accion, datos.indiceDado).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          if (response.mensaje) {
+            this.addLogMessage(response.mensaje);
+          }
+
+          // Si se modificó un dado en combate, actualizar la UI
+          if (datos.accion === 'modificar' || datos.accion === 'retirar') {
+            this.combatMessage = response.mensaje;
+            if (response.dados) {
+              this.currentDiceResult = response.dados[0];
+            }
+          }
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+        } else {
+          this.mensaje = response.mensaje || 'Error al usar estrés';
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al usar estrés:', err);
+        this.mensaje = 'Error al usar estrés';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // método para manejar la selección de opciones de la armería
+  onArmeriaOptionSelect(datos: { opcion: string, arma?: string }): void {
+    if (!this.idPartida) return;
+
+    // Si el usuario decidió salir
+    if (datos.opcion === 'salir') {
+      this.showArmeria = false;
+      return;
+    }
+
+    this.isLoading = true;
+    this.gameService.resolverArmeria(this.idPartida, datos.opcion, datos.arma).subscribe({
+      next: (response) => {
+        // Si requiere selección de arma
+        if (response.requiereSeleccionArma && response.armasDisponibles) {
+          this.isLoading = false;
+          // Pasar las armas disponibles al componente
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarArmas(response.armasDisponibles);
+          } else {
+            this.mensaje = 'Error al mostrar selección de armas';
+          }
+          return;
+        }
+
+        if (response.exito) {
+          this.addLogMessage(response.mensaje);
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+
+          // Mostrar el mensaje en el componente en lugar de cerrar
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarResultado(response.mensaje);
+          }
+        } else {
+          this.mensaje = response.mensaje || 'Error al resolver armería';
+          this.showArmeria = false;
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al resolver armería:', err);
+        this.mensaje = 'Error al resolver armería';
+        this.isLoading = false;
+        this.showArmeria = false;
+      }
+    });
   }
 }

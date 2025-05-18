@@ -18,10 +18,10 @@
         </div>
       </div>
       <div class="stat">
-        <span class="stat-label">ESTRÉS:</span>
+        <span class="stat-label">ESTRES:</span>
         <div class="stat-bar">
-          <div class="stat-fill stress" [style.width.%]="((gameState.capitan.estres || 0) / 10) * 100"></div>
-          <span class="stat-value">{{gameState.capitan.estres || 0}}/10</span>
+          <div class="stat-fill stress" [style.width.%]="((gameState.capitan.estres || 0) / 3) * 100"></div>
+          <span class="stat-value">{{gameState.capitan.estres || 0}}/3</span>
         </div>
       </div>
     </div>
@@ -30,14 +30,10 @@
   <div class="game-content">
     <div class="game-board">
       <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
-      <app-hex-map
-        *ngIf="gameState.mapa && gameState.mapa.length > 0"
-        [mapa]="gameState.mapa"
-        [posicionActual]="gameState.posicion_actual"
-        [codigosActivacion]="gameState.codigos_activacion"
-        (cellClick)="onCellClick($event)"
-      ></app-hex-map>
-      
+      <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
+        [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
+        (cellClick)="onCellClick($event)"></app-hex-map>
+
       <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
         Cargando mapa...
       </div>
@@ -72,20 +68,31 @@
         </div>
       </div>
 
+      <!-- Agregar el componente de gestión de estrés dentro del sidebar -->
+      <div class="sidebar-section">
+        <app-stress-manager [estresActual]="gameState.capitan.estres" [estresMaximo]="10"
+          [dados]="gameState.ultimo_combate?.dados || []" [isInCombat]="!!gameState.encuentro_actual"
+          [traje]="gameState.capitan.traje" [trajeMaximo]="6" [isDisabled]="isLoading"
+          (usarEstres)="onUsarEstres($event)">
+        </app-stress-manager>
+      </div>
+
       <div class="sidebar-section">
         <h3 class="section-title">ARMAS</h3>
         <div class="weapons-container">
           <div class="weapon" *ngFor="let arma of gameState.armas">
             <div class="weapon-header">
               <span class="weapon-name">{{arma.nombre}}</span>
-              <span class="weapon-ammo" *ngIf="arma.municion_max !== null">{{arma.municion}}/{{arma.municion_max}}</span>
+              <span class="weapon-ammo"
+                *ngIf="arma.municion_max !== null">{{arma.municion}}/{{arma.municion_max}}</span>
               <span class="weapon-ammo" *ngIf="arma.municion_max === null">∞</span>
             </div>
             <div class="weapon-stats">
               <span class="weapon-stat">DMG: {{arma.danio}}</span>
               <span class="weapon-stat">PRC: {{arma.precision}}</span>
             </div>
-            <button class="use-weapon" *ngIf="gameState.encuentro_actual" [disabled]="arma.municion <= 0 || isLoading"
+            <button class="use-weapon" *ngIf="gameState.encuentro_actual"
+              [disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
               (click)="resolverCombate(arma.nombre)">
               USAR
             </button>
@@ -141,6 +148,15 @@
   <div class="modal-overlay" *ngIf="showEvent && activeEvent">
     <app-event-resolver [event]="activeEvent" [isLoading]="isLoading" (optionSelected)="resolverEvento($event)">
     </app-event-resolver>
+  </div>
+
+  <!-- Panel de armería -->
+  <div class="modal-overlay" *ngIf="showArmeria">
+    <div class="modal-content">
+      <app-armory-resolver #armeriaSelector [options]="armeriaOptions" [isLoading]="isLoading"
+        (optionSelected)="onArmeriaOptionSelect($event)">
+      </app-armory-resolver>
+    </div>
   </div>
 
   <!-- Panel de fin de juego -->

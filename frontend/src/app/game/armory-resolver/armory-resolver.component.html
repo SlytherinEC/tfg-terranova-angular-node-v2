@@ -1,0 +1,49 @@
+<div class="armory-container">
+  <div class="armory-header">
+    <div class="armory-image"></div>
+    <h2 class="armory-title">ARMERIA</h2>
+  </div>
+
+  <!-- Vista de confirmación cuando la acción está completada -->
+  <div class="armory-content" *ngIf="accionCompletada">
+    <div class="confirmation-view">
+      <h3 class="confirmation-title">ACCIÓN COMPLETADA</h3>
+      <p class="confirmation-message">{{ mensajeResultado }}</p>
+      <button class="exit-button" (click)="salir()">SALIR</button>
+    </div>
+  </div>
+
+  <!-- Vista normal para seleccionar opciones -->
+  <div class="armory-content" *ngIf="!accionCompletada">
+    <p class="armory-description" *ngIf="!mostrarSeleccionArma">
+      Has llegado a la armería de la nave. Aquí puedes conseguir suministros para tu supervivencia.
+      Selecciona una opción:
+    </p>
+
+    <p class="armory-description" *ngIf="mostrarSeleccionArma">
+      Selecciona el arma que deseas recargar:
+    </p>
+
+    <!-- Opciones principales de la armería -->
+    <div class="options-container" *ngIf="!mostrarSeleccionArma">
+      <button *ngFor="let option of options" class="option-button" [class.hovered]="hoveredOption === option.id"
+        [disabled]="isLoading" (click)="onOptionSelect(option.id)" (mouseenter)="setHoveredOption(option.id)"
+        (mouseleave)="setHoveredOption(null)">
+        {{ option.texto }}
+      </button>
+    </div>
+
+    <!-- Selección de arma -->
+    <div class="options-container" *ngIf="mostrarSeleccionArma">
+      <button *ngFor="let arma of armasDisponibles" class="option-button weapon-option" [disabled]="isLoading"
+        (click)="seleccionarArma(arma.id)">
+        {{ arma.texto }}
+      </button>
+    </div>
+
+    <!-- Mostrar siempre el contenedor de descripción para evitar temblores -->
+    <div class="option-description">
+      {{ hoveredOption && !mostrarSeleccionArma ? getOptionDescription(hoveredOption) : '&nbsp;' }}
+    </div>
+  </div>
+</div>
