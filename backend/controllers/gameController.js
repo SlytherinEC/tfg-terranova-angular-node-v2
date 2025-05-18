@@ -222,12 +222,11 @@ const gameController = {
       const resultado = GameService.explorarHabitacion(partida, coordenadas);
 
       if (!resultado.exito) {
-        return res.status(400).json({ mensaje: resultado.mensaje });
-      }
-
-      // VERIFICACIÓN: Si es armería, asegúrate de enviar las opciones correctamente
-      if (resultado.resultado && resultado.resultado.tipo === 'armeria') {
-        console.log("Enviando opciones de armería al frontend:", resultado.resultado.opciones);
+        console.log('Error al explorar:', resultado.mensaje);
+        return res.status(400).json({
+          exito: false,
+          mensaje: resultado.mensaje // Asegurar que se usa el mensaje personalizado
+        });
       }
 
       // Guardar estado actualizado
@@ -239,8 +238,6 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al explorar habitación', error: error.message });
     }
   },
-
-  // Resto de métodos del controlador (permanecen iguales)...
   // resolverCombate, sacrificarPasajero, usarItem, resolverEvento
   // Resolver combate
   resolverCombate: async (req, res) => {
@@ -633,7 +630,7 @@ const gameController = {
   resolverArmeria: async (req, res) => {
     try {
       const { id_partida } = req.params;
-      const { opcion } = req.body;
+      const { opcion, armaSeleccionada } = req.body;
 
       // Validar opción
       if (!opcion || !['recargar_armas', 'reparar_traje', 'recargar_y_reparar'].includes(opcion)) {
@@ -653,10 +650,15 @@ const gameController = {
       }
 
       // Aplicar efecto según la opción seleccionada
-      const resultado = GameService.resolverArmeria(partida, opcion);
+      const resultado = GameService.resolverArmeria(partida, opcion, armaSeleccionada);
 
       if (!resultado.exito) {
         return res.status(400).json({ mensaje: resultado.mensaje });
+      }
+
+      // Si requiere selección de arma, devolver opciones sin guardar el estado
+      if (resultado.requiereSeleccionArma) {
+        return res.status(200).json(resultado);
       }
 
       // Guardar estado actualizado
