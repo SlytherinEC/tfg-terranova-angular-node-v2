@@ -32,7 +32,7 @@ export class EncounterComponent {
     if (this.isLoading) return;
 
     const weapon = this.weapons.find(w => w.nombre === weaponName);
-    if (weapon && weapon.municion > 0) {
+    if (weapon && (weapon.municion === null || weapon.municion > 0)) {
       this.lastSelectedWeapon = weaponName;
       this.weaponSelected.emit(weaponName);
     }
