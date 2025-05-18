@@ -593,7 +593,7 @@ function obtenerCeldasAdyacentes(partida, posicion) {
 }
 
 // Funciones auxiliares
-// Función actualizada para verificar si un movimiento es válido
+// Función para verificar si un movimiento es válido
 function esMovimientoValido(partida, coordenadas) {
   const { x, y } = coordenadas;
 
@@ -652,8 +652,8 @@ function esMovimientoValido(partida, coordenadas) {
   console.log('Es adyacente:', esAdyacente);
   console.log('Está explorada:', estaExplorada);
 
-  if (!esAdyacente && !estaExplorada) {
-    console.log('Movimiento inválido: No es adyacente ni explorada');
+  if (!esAdyacente) {
+    console.log('Movimiento inválido: No es adyacente');
     return false;
   }
 
