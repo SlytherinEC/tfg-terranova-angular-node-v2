@@ -91,7 +91,7 @@
               <span class="weapon-stat">DMG: {{arma.danio}}</span>
               <span class="weapon-stat">PRC: {{arma.precision}}</span>
             </div>
-            <button class="use-weapon" *ngIf="gameState.encuentro_actual" [disabled]="arma.municion <= 0 || isLoading"
+            <button class="use-weapon" *ngIf="gameState.encuentro_actual" [disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
               (click)="resolverCombate(arma.nombre)">
               USAR
             </button>
