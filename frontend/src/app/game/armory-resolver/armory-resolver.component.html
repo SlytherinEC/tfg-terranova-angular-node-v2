@@ -1,0 +1,28 @@
+<div class="armory-container">
+  <div class="armory-header">
+    <h2 class="armory-title">ARMERÍA</h2>
+  </div>
+
+  <div class="armory-content">
+    <p class="armory-description">
+      Has llegado a la armería de la nave. Aquí puedes conseguir suministros para tu supervivencia.
+      Selecciona una opción:
+    </p>
+
+    <div class="options-container">
+      <button *ngFor="let option of options" class="option-button" [class.hovered]="hoveredOption === option.id"
+        [disabled]="isLoading" (click)="onOptionSelect(option.id)" (mouseenter)="setHoveredOption(option.id)"
+        (mouseleave)="setHoveredOption(null)">
+        {{ option.texto }}
+      </button>
+    </div>
+
+    <div class="option-description" *ngIf="hoveredOption">
+      {{ getOptionDescription(hoveredOption) }}
+    </div>
+  </div>
+
+  <div class="armory-image">
+    
+  </div>
+</div>

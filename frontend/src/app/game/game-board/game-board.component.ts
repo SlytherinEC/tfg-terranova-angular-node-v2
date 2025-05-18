@@ -10,6 +10,7 @@ import { EncounterComponent } from '../encounter/encounter.component';
 import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
 import { StressManagerComponent } from '../stress-manager/stress-manager.component';
+import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
 
 @Component({
   selector: 'app-game-board',
@@ -19,7 +20,8 @@ import { StressManagerComponent } from '../stress-manager/stress-manager.compone
     EventResolverComponent,
     EncounterComponent,
     HexMapComponent,
-    StressManagerComponent
+    StressManagerComponent,
+    ArmoryResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -57,6 +59,10 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   activeEvent: any = null;
   combatMessage: string | null = null;
   currentDiceResult: number = 1;
+
+  // Propiedades de la armería
+  showArmeria: boolean = false;
+  armeriaOptions: any[] = [];
 
   constructor(
     private gameService: GameService,
@@ -251,7 +257,10 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         };
         break;
 
-      // Otros tipos de resultados...
+      case 'armeria':
+        this.showArmeria = true;
+        this.armeriaOptions = resultado.opciones;
+        break;      // Otros tipos de resultados...
     }
   }
 
@@ -458,4 +467,34 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       }
     });
   }
-}
+
+// método para manejar la selección de opciones de la armería
+onArmeriaOptionSelect(opcion: string): void {
+  if (!this.idPartida) return;
+
+  this.isLoading = true;
+  this.gameService.resolverArmeria(this.idPartida, opcion).subscribe({
+    next: (response) => {
+      if (response.exito) {
+        this.addLogMessage(response.mensaje);
+        
+        // Actualizar el estado del juego
+        const state = this.gameService.getGameState();
+        if (state) {
+          this.gameState = state;
+        }
+        
+        // Ocultar panel de armería
+        this.showArmeria = false;
+      } else {
+        this.mensaje = response.mensaje || 'Error al resolver armería';
+      }
+      this.isLoading = false;
+    },
+    error: (err) => {
+      console.error('Error al resolver armería:', err);
+      this.mensaje = 'Error al resolver armería';
+      this.isLoading = false;
+    }
+  });
+}}

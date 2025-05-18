@@ -6,11 +6,11 @@ const calcularDuracion = (fechaCreacion, fechaActualizacion) => {
   const inicio = new Date(fechaCreacion);
   const fin = new Date(fechaActualizacion);
   const diffMs = fin - inicio;
-  
+
   // Convertir a minutos
   const minutos = Math.floor(diffMs / 60000);
   const segundos = Math.floor((diffMs % 60000) / 1000);
-  
+
   return `${minutos}m ${segundos}s`;
 };
 
@@ -27,10 +27,10 @@ const calcularRangoFinal = (partida) => {
   if (partida.estado === 'EN_CURSO') {
     return 'En progreso';
   }
-  
+
   // Contar logros
   const totalLogros = contarLogros(partida.logros || {});
-  
+
   // Determinar rango según cantidad de logros
   if (totalLogros >= 9) return 'GENERAL';
   if (totalLogros >= 8) return 'ALMIRANTE';
@@ -465,65 +465,65 @@ const gameController = {
     }
   },
 
-// Obtener logros de una partida
+  // Obtener logros de una partida
   obtenerLogros: async (req, res) => {
     try {
       const { id_partida } = req.params;
-      
+
       // Obtener partida
       const partida = await Partida.getById(id_partida);
-      
+
       if (!partida) {
         return res.status(404).json({ mensaje: 'Partida no encontrada' });
       }
-      
+
       // Verificar que pertenece al usuario
       if (partida.id_usuario !== req.usuario.id_usuario) {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
-      
+
       // Extraer y verificar logros
       const logros = partida.logros || {};
-      
+
       // Verificar logros adicionales antes de responder
       // Esto asegura que obtenemos el estado actual de los logros
-      
+
       // PACIFICADOR: No sacrificar pasajeros
       logros.PACIFICADOR = !partida.pasajeros_sacrificados || partida.pasajeros_sacrificados === 0;
-      
+
       // DESCIFRADOR: Abrir todas las puertas (4 puertas totales en el mapa)
       logros.DESCIFRADOR = partida.puertas_abiertas === 4;
-      
+
       // ARACNOFÓBICO: Vencer 10 Arañas
       logros.ARACNOFOBICO = partida.aliens_derrotados?.arana >= 10;
-      
+
       // CAZADOR: Vencer 8 Sabuesos
       logros.CAZADOR = partida.aliens_derrotados?.sabueso >= 8;
-      
+
       // RASTREADOR: Vencer 6 Rastreadores
       logros.RASTREADOR = partida.aliens_derrotados?.rastreador >= 6;
-      
+
       // GUERRERO: Vencer 4 Reinas
       logros.GUERRERO = partida.aliens_derrotados?.reina >= 4;
-      
+
       // ACUMULADOR: No usar ítems
       logros.ACUMULADOR = !partida.items_usados || partida.items_usados === 0;
-      
+
       // EXTERMINADOR: Vencer una Araña Monstruosa
       logros.EXTERMINADOR = partida.aliens_derrotados?.arana_monstruosa >= 1;
-      
+
       // DOMADOR: Vencer un Sabueso Rabioso
       logros.DOMADOR = partida.aliens_derrotados?.sabueso_rabioso >= 1;
-      
+
       // OSCURIDAD: Vencer una Reina Negra
       logros.OSCURIDAD = partida.aliens_derrotados?.reina_negra >= 1;
-      
+
       // MEMORIAS: Completar 10 Eventos aleatorios
       logros.MEMORIAS = partida.eventos_completados.length >= 10;
-      
+
       // NERVIOSO: No disminuir el estrés
       logros.NERVIOSO = (partida.estres_reducido === undefined || partida.estres_reducido === false);
-      
+
       // Por dificultad
       switch (partida.dificultad) {
         case 'NORMAL':
@@ -539,13 +539,13 @@ const gameController = {
           logros.LOCO = true;
           break;
       }
-      
+
       // Guardar los logros actualizados si la partida ha terminado
       if (partida.estado !== 'EN_CURSO') {
         partida.logros = logros;
         await Partida.updateEstado(id_partida, partida);
       }
-      
+
       res.status(200).json({ logros });
     } catch (error) {
       console.error('Error al obtener logros:', error);
@@ -557,19 +557,19 @@ const gameController = {
   obtenerEstadisticas: async (req, res) => {
     try {
       const { id_partida } = req.params;
-      
+
       // Obtener partida
       const partida = await Partida.getById(id_partida);
-      
+
       if (!partida) {
         return res.status(404).json({ mensaje: 'Partida no encontrada' });
       }
-      
+
       // Verificar que pertenece al usuario
       if (partida.id_usuario !== req.usuario.id_usuario) {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
-      
+
       // Calcular estadísticas
       const estadisticas = {
         // Información básica
@@ -579,50 +579,94 @@ const gameController = {
         fecha_creacion: partida.fecha_creacion,
         fecha_actualizacion: partida.fecha_actualizacion,
         duracion: calcularDuracion(partida.fecha_creacion, partida.fecha_actualizacion),
-        
+
         // Estadísticas del capitán
         capitan: {
           traje: partida.capitan.traje,
           estres: partida.capitan.estres,
           oxigeno: partida.capitan.oxigeno
         },
-        
+
         // Estadísticas de exploración
         exploracion: {
           habitaciones_exploradas: partida.habitaciones_exploradas.length,
           codigos_activacion: partida.codigos_activacion,
           eventos_completados: partida.eventos_completados.length
         },
-        
+
         // Estadísticas de combate
         combate: {
           total_aliens_derrotados: calcularTotalAliensDerrotados(partida.aliens_derrotados || {}),
           detalle_aliens: partida.aliens_derrotados || {}
         },
-        
+
         // Estadísticas de pasajeros
         pasajeros: {
           actuales: partida.pasajeros,
           sacrificados: partida.pasajeros_sacrificados || 0
         },
-        
+
         // Estadísticas de items
         items: {
           actuales: partida.mochila.length,
           usados: partida.items_usados || 0
         },
-        
+
         // Logros
         total_logros: contarLogros(partida.logros || {}),
         rango_final: calcularRangoFinal(partida)
       };
-      
+
       res.status(200).json({ estadisticas });
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
       res.status(500).json({ mensaje: 'Error al obtener estadísticas', error: error.message });
     }
-  }
+  },
+
+  // Resuelve las acciones de la armería
+  resolverArmeria: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { opcion } = req.body;
+
+      // Validar opción
+      if (!opcion || !['recargar_armas', 'reparar_traje', 'recargar_y_reparar'].includes(opcion)) {
+        return res.status(400).json({ mensaje: 'Opción no válida' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Aplicar efecto según la opción seleccionada
+      const resultado = GameService.resolverArmeria(partida, opcion);
+
+      if (!resultado.exito) {
+        return res.status(400).json({ mensaje: resultado.mensaje });
+      }
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      res.status(200).json({
+        exito: true,
+        mensaje: resultado.mensaje,
+        partida
+      });
+    } catch (error) {
+      console.error('Error al resolver armería:', error);
+      res.status(500).json({ mensaje: 'Error al resolver armería', error: error.message });
+    }
+  },
 };
 
 module.exports = gameController;

@@ -28,4 +28,7 @@ router.post('/partidas/:id_partida/usar-estres', gameController.usarEstres);
 router.get('/partidas/:id_partida/logros', gameController.obtenerLogros);
 router.get('/partidas/:id_partida/estadisticas', gameController.obtenerEstadisticas);
 
+// Rutas de gestión de la armería
+router.post('/partidas/:id_partida/resolver-armeria', gameController.resolverArmeria);
+
 module.exports = router;
