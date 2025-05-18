@@ -63,6 +63,10 @@ export class GameService {
       tap((response: any) => {
         if (response.exito) {
           this.gameStateSubject.next(response.partida);
+          // Para depuración
+          if (response.resultado && response.resultado.tipo === 'armeria') {
+            console.log('Opciones de armería recibidas:', response.resultado.opciones);
+          }
         }
       })
     );
