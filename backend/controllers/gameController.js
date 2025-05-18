@@ -225,6 +225,11 @@ const gameController = {
         return res.status(400).json({ mensaje: resultado.mensaje });
       }
 
+      // VERIFICACIÓN: Si es armería, asegúrate de enviar las opciones correctamente
+      if (resultado.resultado && resultado.resultado.tipo === 'armeria') {
+        console.log("Enviando opciones de armería al frontend:", resultado.resultado.opciones);
+      }
+
       // Guardar estado actualizado
       await Partida.updateEstado(id_partida, partida);
 
