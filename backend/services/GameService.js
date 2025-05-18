@@ -47,6 +47,8 @@ function sumarDados(dados) {
   return dados.reduce((sum, value) => sum + value, 0);
 }
 
+
+
 // Servicio principal del juego
 const GameService = {
   // Explorar una habitación
@@ -515,7 +517,64 @@ const GameService = {
       mensaje,
       partida
     };
-  }
+  },
+
+  // Determina acciones de la armería
+  resolverArmeria: (partida, opcion) => {
+    let mensaje = '';
+
+    switch (opcion) {
+      case 'recargar_armas':
+        // Recargar todas las armas
+        partida.armas.forEach(arma => {
+          if (arma.municion !== null) { // Solo recargar armas con munición limitada
+            arma.municion = arma.municion_max;
+          }
+        });
+        mensaje = 'Has recargado todas tus armas.';
+        break;
+
+      case 'reparar_traje':
+        // Reparar todo el traje
+        partida.capitan.traje = 6; // Máximo
+        mensaje = 'Has reparado completamente tu traje.';
+        break;
+
+      case 'recargar_y_reparar':
+        // Recargar 1 arma (la que tenga menos munición) y 3 ptos de traje
+        // Encontrar el arma con menos munición
+        let armaARecargar = null;
+        for (const arma of partida.armas) {
+          if (arma.municion !== null && (armaARecargar === null || arma.municion < armaARecargar.municion)) {
+            armaARecargar = arma;
+          }
+        }
+
+        if (armaARecargar) {
+          armaARecargar.municion = armaARecargar.municion_max;
+        }
+
+        // Reparar 3 puntos de traje
+        partida.capitan.traje = Math.min(6, partida.capitan.traje + 3);
+
+        mensaje = armaARecargar ?
+          `Has recargado tu ${armaARecargar.nombre} y reparado 3 puntos de tu traje.` :
+          'Has reparado 3 puntos de tu traje.';
+        break;
+
+      default:
+        return {
+          exito: false,
+          mensaje: 'Opción no válida'
+        };
+    }
+
+    return {
+      exito: true,
+      mensaje,
+      partida
+    };
+  },
 };
 
 // Función para obtener las celdas adyacentes en un mapa hexagonal
@@ -642,66 +701,85 @@ function explorarHabitacionNormal(partida) {
     return iniciarEncuentroAleatorio(partida);
   }
 
-  // Tirar 2d6 para consultar tabla de exploración
-  const dado1 = tirarDado();
-  const dado2 = tirarDado();
-  const suma = dado1 + dado2;
+  // Tirar 1d6 para consultar tabla de exploración según el documento
+  const dado = tirarDado();
 
-  // Buscar resultado en la tabla
-  const entry = TABLA_EXPLORACION.find(e =>
-    suma >= e.rango[0] && suma <= e.rango[1]
-  );
+  // Inicializar resultado
+  let resultado;
 
-  if (!entry) {
-    return { tipo: 'error', mensaje: 'Error en la tabla de exploración' };
-  }
+  switch (dado) {
+    case 1: // Infestado
+      return iniciarEncuentroAleatorio(partida);
 
-  switch (entry.resultado) {
-    case 'encuentro':
-      // Iniciar encuentro con alien
-      return iniciarEncuentro(partida, entry.alien);
-
-    case 'habitacion_vacia':
-      return {
-        tipo: 'habitacion_vacia',
-        mensaje: 'La habitación está vacía y segura.'
-      };
-
-    case 'item':
+    case 2: // Infestado Bahia de carga
+      // Añadir un ítem
       const item = obtenerItemAleatorio();
       if (partida.mochila.length < 5) {
         partida.mochila.push(item);
-        return {
-          tipo: 'item',
-          mensaje: `Has encontrado: ${item.nombre}`,
-          item
-        };
-      } else {
-        return {
-          tipo: 'item_perdido',
-          mensaje: 'Has encontrado un ítem, pero tu mochila está llena.'
-        };
       }
 
-    case 'oxigeno':
-      partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + entry.cantidad);
+      // Guardar información del ítem para mostrar en mensaje
+      const mensajeItem = `Has encontrado ${item.nombre}! Pero también hay un alien.`;
+
+      // Iniciar encuentro
+      const resultadoEncuentro = iniciarEncuentroAleatorio(partida);
+      resultadoEncuentro.resultado.mensaje = mensajeItem;
+      resultadoEncuentro.resultado.itemObtenido = item;
+
+      return resultadoEncuentro;
+
+    case 3: // Infestado Control
+      // Añadir código de activación
+      partida.codigos_activacion += 1;
+
+      // Iniciar encuentro
+      const resultadoControl = iniciarEncuentroAleatorio(partida);
+      resultadoControl.resultado.mensaje = "¡Has encontrado un código de activación! Pero también hay un alien.";
+      resultadoControl.resultado.codigoObtenido = true;
+
+      return resultadoControl;
+
+    case 4: // Control
+      // Añadir código de activación
+      partida.codigos_activacion += 1;
+
       return {
-        tipo: 'oxigeno',
-        mensaje: `Has encontrado un tubo de oxígeno (+${entry.cantidad} O2)`
+        exito: true,
+        resultado: {
+          tipo: 'control',
+          mensaje: '¡Has encontrado un código de activación!'
+        },
+        partida
       };
 
-    case 'pasajero':
-      partida.pasajeros += entry.cantidad;
+    case 5: // Armería
+      // El frontend mostrará las opciones y enviará la elección del usuario
       return {
-        tipo: 'pasajero',
-        mensaje: `Has encontrado ${entry.cantidad} superviviente(s).`
+        exito: true,
+        resultado: {
+          tipo: 'armeria',
+          mensaje: 'Has llegado a la armería. Selecciona una opción:',
+          opciones: [
+            { id: 'recargar_armas', texto: 'Recargar todas las armas' },
+            { id: 'reparar_traje', texto: 'Reparar todo el traje' },
+            { id: 'recargar_y_reparar', texto: 'Recargar 1 arma y 3 ptos de traje' }
+          ]
+        },
+        partida
       };
 
-    case 'codigo_activacion':
-      partida.codigos_activacion += entry.cantidad;
+    case 6: // Seguridad
+      // Añadir pasajero y remover estrés
+      partida.pasajeros += 1;
+      partida.capitan.estres = 0;
+
       return {
-        tipo: 'codigo_activacion',
-        mensaje: `¡Has encontrado un código de activación!`
+        exito: true,
+        resultado: {
+          tipo: 'seguridad',
+          mensaje: '¡Has encontrado un superviviente! También te sientes más tranquilo. (Estrés = 0)'
+        },
+        partida
       };
   }
 }
