@@ -95,13 +95,15 @@ const GameService = {
         break;
 
       case 'armeria':
-        const armasRecargadas = recargarArmas(partida.armas);
         resultado = {
           tipo: 'armeria',
-          mensaje: `Has recargado todas tus armas`,
-          armas: partida.armas
-        };
-        break;
+          mensaje: 'Has llegado a la armería. Selecciona una opción:',
+          opciones: [
+            { id: 'recargar_armas', texto: 'Recargar todas las armas' },
+            { id: 'reparar_traje', texto: 'Reparar todo el traje' },
+            { id: 'recargar_y_reparar', texto: 'Recargar 1 arma y 3 ptos de traje' }
+          ]
+        }; break;
 
       case 'control':
         partida.codigos_activacion += 1;
