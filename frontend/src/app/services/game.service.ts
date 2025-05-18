@@ -152,6 +152,20 @@ export class GameService {
     );
   }
 
+  // NUEVA FUNCIÓN: Resolver armería
+  resolverArmeria(idPartida: number, opcion: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/resolver-armeria`,
+      { opcion },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
   // Añadir método para guardar estado automáticamente
   autoSaveGameState(): void {
     const currentState = this.gameStateSubject.value;
