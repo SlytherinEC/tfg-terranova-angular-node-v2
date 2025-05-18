@@ -44,7 +44,7 @@
       <h3 class="section-title">SELECCIONA UN ARMA</h3>
 
       <div class="weapons-grid">
-        <div class="weapon-card" *ngFor="let arma of weapons" [class.disabled]="arma.municion <= 0 || isLoading"
+        <div class="weapon-card" *ngFor="let arma of weapons" [class.disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
           (click)="onWeaponSelect(arma.nombre)">
           <div class="weapon-name">{{arma.nombre}}</div>
           <div class="weapon-stats">

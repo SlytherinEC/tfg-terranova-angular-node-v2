@@ -1,5 +1,5 @@
 // src/app/game/game-board/game-board.component.ts - Actualizado
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -63,6 +63,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   // Propiedades de la armería
   showArmeria: boolean = false;
   armeriaOptions: any[] = [];
+  @ViewChild('armeriaSelector') armeriaSelector: any;
 
   constructor(
     private gameService: GameService,
@@ -225,8 +226,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
       error: (err) => {
+        // Asegurarse de mostrar el mensaje de error del servidor si está disponible
+        if (err.error && err.error.mensaje) {
+          this.mensaje = err.error.mensaje;
+        } else {
+          this.mensaje = 'Error al explorar la habitación';
+        }
         console.error('Error al explorar:', err);
-        this.mensaje = 'La habitación es inaccesible desde tu posición actual';
         this.isLoading = false;
       }
     });
@@ -259,8 +265,22 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
       case 'armeria':
         this.showArmeria = true;
-        this.armeriaOptions = resultado.opciones;
-        break;      // Otros tipos de resultados...
+        // Verificar y registrar el estado de las opciones
+        console.log('Opciones recibidas de la armería:', resultado.opciones);
+        this.armeriaOptions = resultado.opciones || [];
+        // Si aún no hay opciones, crear opciones predeterminadas
+        if (!this.armeriaOptions || this.armeriaOptions.length === 0) {
+          console.warn('Sin opciones de armería, usando valores predeterminados');
+          this.armeriaOptions = [
+            { id: 'recargar_armas', texto: 'Recargar todas las armas' },
+            { id: 'reparar_traje', texto: 'Reparar todo el traje' },
+            { id: 'recargar_y_reparar', texto: 'Recargar 1 arma y 3 ptos de traje' }
+          ];
+        }
+        break;
+
+      // Otros casos...
+
     }
   }
 
@@ -468,33 +488,56 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     });
   }
 
-// método para manejar la selección de opciones de la armería
-onArmeriaOptionSelect(opcion: string): void {
-  if (!this.idPartida) return;
+  // método para manejar la selección de opciones de la armería
+  onArmeriaOptionSelect(datos: { opcion: string, arma?: string }): void {
+    if (!this.idPartida) return;
 
-  this.isLoading = true;
-  this.gameService.resolverArmeria(this.idPartida, opcion).subscribe({
-    next: (response) => {
-      if (response.exito) {
-        this.addLogMessage(response.mensaje);
-        
-        // Actualizar el estado del juego
-        const state = this.gameService.getGameState();
-        if (state) {
-          this.gameState = state;
-        }
-        
-        // Ocultar panel de armería
-        this.showArmeria = false;
-      } else {
-        this.mensaje = response.mensaje || 'Error al resolver armería';
-      }
-      this.isLoading = false;
-    },
-    error: (err) => {
-      console.error('Error al resolver armería:', err);
-      this.mensaje = 'Error al resolver armería';
-      this.isLoading = false;
+    // Si el usuario decidió salir
+    if (datos.opcion === 'salir') {
+      this.showArmeria = false;
+      return;
     }
-  });
-}}
+
+    this.isLoading = true;
+    this.gameService.resolverArmeria(this.idPartida, datos.opcion, datos.arma).subscribe({
+      next: (response) => {
+        // Si requiere selección de arma
+        if (response.requiereSeleccionArma && response.armasDisponibles) {
+          this.isLoading = false;
+          // Pasar las armas disponibles al componente
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarArmas(response.armasDisponibles);
+          } else {
+            this.mensaje = 'Error al mostrar selección de armas';
+          }
+          return;
+        }
+
+        if (response.exito) {
+          this.addLogMessage(response.mensaje);
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+
+          // Mostrar el mensaje en el componente en lugar de cerrar
+          if (this.armeriaSelector) {
+            this.armeriaSelector.mostrarResultado(response.mensaje);
+          }
+        } else {
+          this.mensaje = response.mensaje || 'Error al resolver armería';
+          this.showArmeria = false;
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al resolver armería:', err);
+        this.mensaje = 'Error al resolver armería';
+        this.isLoading = false;
+        this.showArmeria = false;
+      }
+    });
+  }
+}
