@@ -53,11 +53,14 @@ function sumarDados(dados) {
 const GameService = {
   // Explorar una habitación
   explorarHabitacion: (partida, coordenadas) => {
+
     // Validar movimiento
-    if (!esMovimientoValido(partida, coordenadas)) {
+    const validacion = esMovimientoValido(partida, coordenadas);
+    if (!validacion.valido) {
+      console.log('Validación de movimiento fallida:', validacion.mensaje);
       return {
         exito: false,
-        mensaje: 'Movimiento no válido'
+        mensaje: validacion.mensaje || 'Movimiento no válido'
       };
     }
 
@@ -521,8 +524,8 @@ const GameService = {
     };
   },
 
-  // Determina acciones de la armería
-  resolverArmeria: (partida, opcion) => {
+  // Método resolverArmeria
+  resolverArmeria: (partida, opcion, armaSeleccionada) => {
     let mensaje = '';
 
     switch (opcion) {
@@ -543,25 +546,43 @@ const GameService = {
         break;
 
       case 'recargar_y_reparar':
-        // Recargar 1 arma (la que tenga menos munición) y 3 ptos de traje
-        // Encontrar el arma con menos munición
-        let armaARecargar = null;
-        for (const arma of partida.armas) {
-          if (arma.municion !== null && (armaARecargar === null || arma.municion < armaARecargar.municion)) {
-            armaARecargar = arma;
+        // Si no se especificó un arma pero se necesita seleccionar una
+        if (!armaSeleccionada) {
+          // Obtener lista de armas recargables (excluyendo Palanca)
+          const armasRecargables = partida.armas.filter(a =>
+            a.nombre !== 'Palanca' && a.municion !== null && a.municion < a.municion_max
+          );
+
+          if (armasRecargables.length === 0) {
+            mensaje = 'Todas tus armas están completamente cargadas. Has reparado 3 puntos de tu traje.';
+            partida.capitan.traje = Math.min(6, partida.capitan.traje + 3);
+          } else {
+            // Devolver listado de armas para selección
+            return {
+              exito: true,
+              requiereSeleccionArma: true,
+              armasDisponibles: armasRecargables.map(a => ({
+                id: a.nombre,
+                texto: `${a.nombre} (${a.municion}/${a.municion_max})`
+              })),
+              mensaje: 'Selecciona un arma para recargar:'
+            };
           }
         }
+        // Si ya se especificó un arma
+        else {
+          // Buscar el arma seleccionada
+          const arma = partida.armas.find(a => a.nombre === armaSeleccionada);
+          if (arma && arma.municion !== null) {
+            arma.municion = arma.municion_max;
+            mensaje = `Has recargado tu ${arma.nombre} y reparado 3 puntos de tu traje.`;
+          } else {
+            mensaje = 'Arma no encontrada. Solo has reparado 3 puntos de tu traje.';
+          }
 
-        if (armaARecargar) {
-          armaARecargar.municion = armaARecargar.municion_max;
+          // Reparar 3 puntos de traje
+          partida.capitan.traje = Math.min(6, partida.capitan.traje + 3);
         }
-
-        // Reparar 3 puntos de traje
-        partida.capitan.traje = Math.min(6, partida.capitan.traje + 3);
-
-        mensaje = armaARecargar ?
-          `Has recargado tu ${armaARecargar.nombre} y reparado 3 puntos de tu traje.` :
-          'Has reparado 3 puntos de tu traje.';
         break;
 
       default:
@@ -602,13 +623,13 @@ function esMovimientoValido(partida, coordenadas) {
   // Verificar si las coordenadas son válidas
   if (y < 0 || y >= partida.mapa.length) {
     console.log('Movimiento inválido: Coordenada Y fuera de rango');
-    return false;
+    return { valido: false, mensaje: 'Coordenadas fuera de rango' };
   }
 
   // Verificar si X está dentro del rango de la fila
   if (x < 0 || x >= partida.mapa[y].length) {
     console.log('Movimiento inválido: Coordenada X fuera de rango');
-    return false;
+    return { valido: false, mensaje: 'Coordenadas fuera de rango' };
   }
 
   // Encontrar la celda destino
@@ -616,50 +637,79 @@ function esMovimientoValido(partida, coordenadas) {
 
   if (!celda) {
     console.log('Movimiento inválido: Celda no encontrada');
-    return false;
+    return { valido: false, mensaje: 'Celda no encontrada' };
   }
 
   // Verificar si la celda es inaccesible
   if (celda.tipo === 'inaccesible') {
     console.log('Movimiento inválido: Celda inaccesible');
-    return false;
+    return { valido: false, mensaje: 'Esta zona es inaccesible' };
+  }
+
+  // Verificar si ya ha sido explorada para habitaciones de una sola visita
+  const habitacionesUnaVisita = ['armeria', 'seguridad', 'control', 'bahia_carga'];
+  if (habitacionesUnaVisita.includes(celda.tipo) && celda.explorado) {
+    // Mensajes específicos según el tipo de habitación
+    let mensaje;
+    switch (celda.tipo) {
+      case 'armeria':
+        mensaje = 'Ya has utilizado los recursos de la armería. Solo se puede acceder una vez.';
+        break;
+      case 'seguridad':
+        mensaje = 'La sala de seguridad ya ha sido inspeccionada y no queda nada de utilidad.';
+        break;
+      case 'control':
+        mensaje = 'Ya has recuperado el código de activación de esta sala de control.';
+        break;
+      case 'bahia_carga':
+        mensaje = 'Ya has recogido todos los suministros de esta bahía de carga.';
+        break;
+      default:
+        mensaje = `La habitación de tipo ${celda.tipo} ya ha sido visitada y no hay nada más que hacer.`;
+    }
+    console.log('Habitación de una visita ya explorada:', mensaje);
+    return { valido: false, mensaje };
   }
 
   // Verificar si hay puerta bloqueada
   if (celda.puerta_bloqueada && partida.codigos_activacion < celda.codigos_requeridos) {
     console.log('Movimiento inválido: Puerta bloqueada');
-    return false;
+    return {
+      valido: false,
+      mensaje: `Esta puerta está bloqueada. Necesitas ${celda.codigos_requeridos} códigos de activación.`
+    };
   }
 
   // Verificar si hay combate activo
   if (partida.encuentro_actual) {
     console.log('Movimiento inválido: Hay un combate activo');
-    return false;
+    return {
+      valido: false,
+      mensaje: 'No puedes moverte mientras estás en combate.'
+    };
   }
 
   // Obtener las celdas adyacentes a la posición actual
   const adyacentes = obtenerCeldasAdyacentes(partida, partida.posicion_actual);
-  // const adyacentes = obtenerCeldasAdyacentes(partida.mapa, partida.posicion_actual);
 
   // Debug para ver qué celdas se consideran adyacentes
   console.log('Posición actual:', partida.posicion_actual);
   console.log('Coordenadas destino:', coordenadas);
   console.log('Celdas adyacentes:', adyacentes);
 
-  // Verificar si la celda está en las adyacentes o ya ha sido explorada
-  // const esAdyacente = adyacentes.some(adj => adj.x === x && adj.y === y);
+  // Verificar si la celda está en las adyacentes
   const esAdyacente = adyacentes.some(adj => adj.x === coordenadas.x && adj.y === coordenadas.y);
-  const estaExplorada = celda.explorado;
-
   console.log('Es adyacente:', esAdyacente);
-  console.log('Está explorada:', estaExplorada);
 
   if (!esAdyacente) {
     console.log('Movimiento inválido: No es adyacente');
-    return false;
+    return {
+      valido: false,
+      mensaje: 'Solo puedes moverte a habitaciones adyacentes.'
+    };
   }
 
-  return true;
+  return { valido: true, mensaje: '' };
 }
 
 function revisitarHabitacion(partida, celda) {
