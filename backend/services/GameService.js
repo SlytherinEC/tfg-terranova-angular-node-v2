@@ -713,6 +713,20 @@ function esMovimientoValido(partida, coordenadas) {
 }
 
 function revisitarHabitacion(partida, celda) {
+
+  // Caso especial para estaciones de oxígeno
+  if (celda.tipo === 'estacion_oxigeno') {
+    partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + 3);
+    return {
+      exito: true,
+      resultado: {
+        tipo: 'estacion_oxigeno',
+        mensaje: 'Has recuperado 3 puntos de oxígeno'
+      },
+      partida
+    };
+  }
+
   // Tirar dado para determinar qué sucede al revisitar
   const resultado = tirarDado();
 
