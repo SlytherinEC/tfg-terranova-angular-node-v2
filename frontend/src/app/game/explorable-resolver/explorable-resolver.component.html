@@ -1,0 +1,37 @@
+<div class="explorable-container">
+  <div class="explorable-header">
+    <h2 class="explorable-title">HABITACIÓN EXPLORABLE</h2>
+  </div>
+
+  <div class="explorable-content">
+    <div class="left-panel">
+      <div class="dice-container">
+        <app-dice *ngIf="diceResult !== null" [resultado]="diceResult"
+          [@diceAnimation]="showDiceAnimation ? 'rolling' : 'stopped'">
+        </app-dice>
+
+        <div *ngIf="diceResult === null" class="dice-placeholder">
+          <span>?</span>
+        </div>
+      </div>
+
+      <button class="roll-button" [disabled]="isLoading || showAcceptButton" (click)="onRollDice()">
+        {{ diceResult === null ? 'TIRAR DADO' : 'TIRADO: ' + diceResult }}
+      </button>
+    </div>
+
+    <div class="right-panel">
+      <div class="info-section">
+        <p class="info-message">{{ diceResult === null ? infoMessage : getDiceResultDescription() }}</p>
+
+        <div *ngIf="resultDetails && resultType === 'item'" class="item-found">
+          <p>Objeto encontrado: {{ resultDetails.nombre }}</p>
+        </div>
+      </div>
+
+      <button *ngIf="showAcceptButton" class="accept-button" [disabled]="isLoading" (click)="onAcceptResult()">
+        ACEPTAR
+      </button>
+    </div>
+  </div>
+</div>
