@@ -11,6 +11,8 @@ import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
 import { StressManagerComponent } from '../stress-manager/stress-manager.component';
 import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
+import { ExplorableResolverComponent } from '../explorable-resolver/explorable-resolver.component';
+import { DiceService } from '../../services/dice.service';
 
 @Component({
   selector: 'app-game-board',
@@ -21,7 +23,8 @@ import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.comp
     EncounterComponent,
     HexMapComponent,
     StressManagerComponent,
-    ArmoryResolverComponent
+    ArmoryResolverComponent,
+    ExplorableResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -60,6 +63,15 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   combatMessage: string | null = null;
   currentDiceResult: number = 1;
 
+  // Propiedades del explorable resolver
+  showExplorable: boolean = false;
+  explorableCellCoords: any = null;
+  explorableDiceResult: number | null = null;
+  explorableResultMessage: string = '';
+  explorableResultType: string = '';
+  explorableResultDetails: any = null;
+  @ViewChild('explorableResolver') explorableResolver!: ExplorableResolverComponent;
+
   // Propiedades de la armería
   showArmeria: boolean = false;
   armeriaOptions: any[] = [];
@@ -68,6 +80,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   constructor(
     private gameService: GameService,
     private mapService: MapService,
+    private diceService: DiceService,
     private route: ActivatedRoute,
     private router: Router
   ) { }
@@ -199,6 +212,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Si es una celda explorable y no está explorada, mostrar el componente explorable
+    if (cell.tipo === 'explorable' && !cell.explorado) {
+      this.showExplorable = true;
+      this.explorableCellCoords = { x: cell.x, y: cell.y };
+      return;
+    }
+
     // Explorar la celda
     this.explorarCelda(cell);
   }
@@ -233,6 +253,82 @@ export class GameBoardComponent implements OnInit, OnDestroy {
           this.mensaje = 'Error al explorar la habitación';
         }
         console.error('Error al explorar:', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // método para tirar el dado de exploración
+  onRollExplorableDice(): void {
+    if (!this.idPartida || !this.explorableCellCoords) return;
+
+    this.isLoading = true;
+
+    // Usar el servicio de juego para tirar el dado
+    this.gameService.tirarDadoExploracion(this.idPartida).subscribe({
+      next: (response: any) => {
+        if (response.exito) {
+          this.explorableDiceResult = response.resultado;
+          this.explorableResultMessage = response.mensaje;
+          this.explorableResultType = response.tipo;
+
+          // Actualizar el componente explorable-resolver con el resultado del servidor
+          if (this.explorableResolver) {
+            this.explorableResolver.setDiceResult(
+              response.resultado,
+              response.mensaje,
+              response.tipo,
+              response.resultDetails || null
+            );
+          }
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al tirar dado de exploración:', err);
+        this.mensaje = 'Error al tirar dado';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // método para resolver la exploración
+  onAcceptExplorableResult(): void {
+    if (!this.idPartida || !this.explorableCellCoords) return;
+
+    this.isLoading = true;
+
+    // Usar el servicio de juego para resolver la exploración
+    this.gameService.resolverExploracion(this.idPartida, this.explorableCellCoords).subscribe({
+      next: (response: any) => {
+        if (response.exito) {
+          this.procesarResultadoExploracion(response);
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+
+          // Guardar estado automáticamente
+          this.gameService.autoSaveGameState();
+
+          // Cerrar el componente explorable
+          this.showExplorable = false;
+          this.explorableCellCoords = null;
+          this.explorableDiceResult = null;
+        } else {
+          this.mensaje = response.mensaje || 'Error al explorar';
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        if (err.error && err.error.mensaje) {
+          this.mensaje = err.error.mensaje;
+        } else {
+          this.mensaje = 'Error al resolver la exploración';
+        }
+        console.error('Error al resolver exploración:', err);
         this.isLoading = false;
       }
     });

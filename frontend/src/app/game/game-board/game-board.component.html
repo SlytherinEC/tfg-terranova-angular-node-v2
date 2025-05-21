@@ -135,6 +135,15 @@
     </div>
   </div>
 
+  <!-- Modal para habitaciones explorables -->
+  <div class="modal-overlay" *ngIf="showExplorable">
+    <div class="modal-content">
+      <app-explorable-resolver #explorableResolver [isLoading]="isLoading" (rollDice)="onRollExplorableDice()"
+        (acceptResult)="onAcceptExplorableResult()">
+      </app-explorable-resolver>
+    </div>
+  </div>
+
   <!-- Panel de combate -->
   <div class="modal-overlay" *ngIf="showEncounter">
     <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
