@@ -38,16 +38,11 @@ export class ExplorableResolverComponent {
     this.resultDetails = details;
     this.showAcceptButton = true;
 
-    // Animamos el dado utilizando el componente existente
-    setTimeout(() => {
-      if (this.diceComponent) {
-        this.diceComponent.lanzarDado();
-        // Sobreescribir el resultado del dado una vez que la animación ha comenzado
-        setTimeout(() => {
-          this.diceComponent.resultado = result;
-        }, 100);
-      }
-    }, 0);
+    // Lanzar el dado directamente con el resultado del backend
+    if (this.diceComponent) {
+      // Pasar el resultado forzado para asegurar que coincida con el backend
+      this.diceComponent.lanzarDado(result);
+    }
   }
 
   onAcceptResult(): void {
