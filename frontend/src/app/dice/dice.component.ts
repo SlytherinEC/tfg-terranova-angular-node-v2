@@ -22,7 +22,7 @@ export class DiceComponent {
   rotateX: number = 0;
   rotateY: number = 0;
   isRolling: boolean = false;
-  
+
   // Mapeo de resultados a rotaciones
   // Cada número del dado tiene una rotación específica en los ejes X e Y
   private rotationMap: { [key: number]: { x: number; y: number } } = {
@@ -33,24 +33,29 @@ export class DiceComponent {
     5: { x: 0, y: -90 },    // Cara izquierda - 5
     6: { x: 0, y: 180 }     // Cara trasera - 6
   };
-  
-  lanzarDado() {
+
+  lanzarDado(resultadoForzado?: number) {
     if (this.isRolling) return;
-    
+
     this.isRolling = true;
-    
+
     // Generar rotaciones aleatorias durante la animación
     const randomX = Math.floor(Math.random() * 5) * 360;
     const randomY = Math.floor(Math.random() * 5) * 360;
-    
+
     // Obtener un resultado aleatorio entre 1 y 6
-    this.resultado = Math.floor(Math.random() * 6) + 1;
-    
+    // this.resultado = Math.floor(Math.random() * 6) + 1;
+
+    // Usar el resultado forzado si existe, o generar uno aleatorio
+    this.resultado = resultadoForzado !== undefined ?
+      resultadoForzado :
+      Math.floor(Math.random() * 6) + 1;
+
     // Aplicar la rotación correspondiente al resultado + rotaciones adicionales
     const targetRotation = this.rotationMap[this.resultado];
     this.rotateX = randomX + targetRotation.x;
     this.rotateY = randomY + targetRotation.y;
-    
+
     // Reiniciar el estado después de la animación
     setTimeout(() => {
       this.isRolling = false;
