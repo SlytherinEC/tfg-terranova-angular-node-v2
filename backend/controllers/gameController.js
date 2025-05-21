@@ -1,6 +1,7 @@
 // controllers/gameController.js - Actualizado con métodos para el mapa
 const Partida = require('../models/Partida');
 const GameService = require('../services/GameService');
+const DiceService = require('../services/DiceService');
 
 const calcularDuracion = (fechaCreacion, fechaActualizacion) => {
   const inicio = new Date(fechaCreacion);
@@ -674,6 +675,288 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver armería', error: error.message });
     }
   },
+
+  // Método para explorar celda interactivamente (primera fase: tirar dado)
+  explorarTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Guardar el resultado temporalmente
+      partida.ultimo_dado_exploracion = valorDado;
+      await Partida.updateEstado(id_partida, partida);
+
+      // Preparar mensaje según el valor del dado
+      let mensaje = '';
+      let tipo = '';
+      let resultDetails = null;
+
+      switch (valorDado) {
+        case 1:
+          mensaje = 'Habitación infestada: ¡Te encontraste con un alien!';
+          tipo = 'encuentro';
+          break;
+        case 2:
+          mensaje = 'Bahía de carga infestada: ¡Has encontrado un ítem pero hay un alien!';
+          tipo = 'encuentro_item';
+          break;
+        case 3:
+          mensaje = 'Control infestado: ¡Has encontrado un código de activación pero hay un alien!';
+          tipo = 'encuentro_codigo';
+          break;
+        case 4:
+          mensaje = 'Control: Has encontrado un código de activación';
+          tipo = 'codigo';
+          break;
+        case 5:
+          mensaje = 'Armería: Selecciona una opción para mejorar tu equipo';
+          tipo = 'armeria';
+          break;
+        case 6:
+          mensaje = 'Seguridad: Has encontrado un superviviente y te sientes más tranquilo';
+          tipo = 'seguridad';
+          break;
+      }
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        mensaje,
+        tipo,
+        resultDetails
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de exploración:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de exploración', error: error.message });
+    }
+  },
+
+  // Método para explorar celda interactivamente (segunda fase: resolver resultado)
+  explorarResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { coordenadas } = req.body;
+
+      // Validar coordenadas
+      if (!coordenadas || typeof coordenadas.x !== 'number' || typeof coordenadas.y !== 'number') {
+        return res.status(400).json({ mensaje: 'Coordenadas inválidas' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Obtener valor del dado almacenado
+      const valorDado = partida.ultimo_dado_exploracion;
+
+      if (!valorDado) {
+        return res.status(400).json({ mensaje: 'Debes tirar el dado primero' });
+      }
+
+      // Actualizar posición actual
+      partida.posicion_actual = { ...coordenadas };
+
+      // Obtener celda actual
+      const celda = partida.mapa[coordenadas.y][coordenadas.x];
+
+      // Marcar como explorada
+      celda.explorado = true;
+      partida.habitaciones_exploradas.push(`${coordenadas.x},${coordenadas.y}`);
+
+      // Consumir oxígeno
+      partida.capitan.oxigeno -= 1;
+      if (partida.capitan.oxigeno <= 0) {
+        return finalizarPartida(partida, 'DERROTA', 'Te has quedado sin oxígeno');
+      }
+
+      // Resolver según el valor del dado
+      let resultado;
+
+      switch (valorDado) {
+        case 1: // Infestado - solo encuentro
+          const alienAleatorio = obtenerAlienAleatorio();
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'encuentro',
+              mensaje: `¡Te has encontrado con un ${alienAleatorio.nombre}!`,
+              encuentro: {
+                alien: alienAleatorio.tipo,
+                pg: alienAleatorio.pg,
+                alienData: alienAleatorio
+              }
+            }
+          };
+          partida.encuentro_actual = {
+            alien: alienAleatorio.tipo,
+            pg: alienAleatorio.pg
+          };
+          break;
+
+        case 2: // Infestado Bahía de carga - ítem + encuentro
+          const item = obtenerItemAleatorio();
+          if (partida.mochila.length < 5) {
+            partida.mochila.push(item);
+          }
+
+          const alienBahia = obtenerAlienAleatorio();
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'encuentro',
+              mensaje: `Has encontrado ${item.nombre}! Pero también hay un alien.`,
+              encuentro: {
+                alien: alienBahia.tipo,
+                pg: alienBahia.pg,
+                alienData: alienBahia
+              },
+              itemObtenido: item
+            }
+          };
+          partida.encuentro_actual = {
+            alien: alienBahia.tipo,
+            pg: alienBahia.pg
+          };
+          break;
+
+        case 3: // Infestado Control - código + encuentro
+          partida.codigos_activacion += 1;
+          const alienControl = obtenerAlienAleatorio();
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'encuentro',
+              mensaje: "¡Has encontrado un código de activación! Pero también hay un alien.",
+              encuentro: {
+                alien: alienControl.tipo,
+                pg: alienControl.pg,
+                alienData: alienControl
+              },
+              codigoObtenido: true
+            }
+          };
+          partida.encuentro_actual = {
+            alien: alienControl.tipo,
+            pg: alienControl.pg
+          };
+          break;
+
+        case 4: // Control - solo código
+          partida.codigos_activacion += 1;
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'control',
+              mensaje: '¡Has encontrado un código de activación!'
+            }
+          };
+          break;
+
+        case 5: // Armería
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'armeria',
+              mensaje: 'Has llegado a la armería. Selecciona una opción:',
+              opciones: [
+                { id: 'recargar_armas', texto: 'Recargar todas las armas' },
+                { id: 'reparar_traje', texto: 'Reparar todo el traje' },
+                { id: 'recargar_y_reparar', texto: 'Recargar 1 arma y 3 ptos de traje' }
+              ]
+            }
+          };
+          break;
+
+        case 6: // Seguridad
+          partida.pasajeros += 1;
+          partida.capitan.estres = 0;
+          resultado = {
+            exito: true,
+            resultado: {
+              tipo: 'seguridad',
+              mensaje: '¡Has encontrado un superviviente! También te sientes más tranquilo. (Estrés = 0)'
+            }
+          };
+          break;
+      }
+
+      // Limpiar el dado de exploración
+      partida.ultimo_dado_exploracion = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      // Añadir la partida actualizada a la respuesta
+      resultado.partida = partida;
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver exploración:', error);
+      res.status(500).json({ mensaje: 'Error al resolver exploración', error: error.message });
+    }
+  },
 };
+
+// Helper function
+function obtenerAlienAleatorio() {
+  const aliens = {
+    arana: { tipo: 'arana', nombre: 'Araña', danio: 1, objetivo: 3, pg: 1 },
+    sabueso: { tipo: 'sabueso', nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 2 },
+    rastreador: { tipo: 'rastreador', nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 4 },
+    reina: { tipo: 'reina', nombre: 'Reina', danio: 3, objetivo: 8, pg: 8 }
+  };
+
+  const rand = Math.random();
+  let tipoAlien;
+
+  if (rand < 0.4) {
+    tipoAlien = 'arana';
+  } else if (rand < 0.7) {
+    tipoAlien = 'sabueso';
+  } else if (rand < 0.9) {
+    tipoAlien = 'rastreador';
+  } else {
+    tipoAlien = 'reina';
+  }
+
+  return aliens[tipoAlien];
+}
+
+// Esta función auxiliar debe estar fuera del objeto gameController,
+// Antes del módulo exports si no está ya definida:
+function obtenerItemAleatorio() {
+  const items = [
+    { nombre: 'Kit de Reparación', efecto: 'Repara 2 puntos de traje', usos: 1 },
+    { nombre: 'Analgésico', efecto: 'Reduce 2 puntos de estrés', usos: 1 },
+    { nombre: 'Visor', efecto: 'Añade +1 a la precisión del arma', usos: 3 },
+    { nombre: 'Munición', efecto: 'Recarga 2 municiones de un arma', usos: 1 },
+    { nombre: 'Tanque de O2', efecto: 'Recupera 3 puntos de oxígeno', usos: 1 }
+  ];
+
+  const indice = Math.floor(Math.random() * items.length);
+  return { ...items[indice] };
+}
 
 module.exports = gameController;

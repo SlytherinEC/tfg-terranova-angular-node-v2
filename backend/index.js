@@ -15,6 +15,7 @@ app.use(express.json());
 app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/game', require('./routes/game'));
+app.use('/api/dice', require('./routes/dice'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
