@@ -209,4 +209,34 @@ export class GameService {
     }
     return false;
   }
+
+  // Tirar dado para exploración
+  tirarDadoExploracion(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/explorar-tirar-dado`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de exploración:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver exploración
+  resolverExploracion(idPartida: number, coordenadas: { x: number, y: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/explorar-resolver`,
+      { coordenadas },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver exploración:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }
