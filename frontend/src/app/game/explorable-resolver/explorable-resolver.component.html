@@ -6,13 +6,9 @@
   <div class="explorable-content">
     <div class="left-panel">
       <div class="dice-container">
-        <app-dice *ngIf="diceResult !== null" [resultado]="diceResult"
-          [@diceAnimation]="showDiceAnimation ? 'rolling' : 'stopped'">
+        <!-- Usamos el componente existente, con su animación incorporada -->
+        <app-dice #diceRef [resultado]="diceResult || 1">
         </app-dice>
-
-        <div *ngIf="diceResult === null" class="dice-placeholder">
-          <span>?</span>
-        </div>
       </div>
 
       <button class="roll-button" [disabled]="isLoading || showAcceptButton" (click)="onRollDice()">

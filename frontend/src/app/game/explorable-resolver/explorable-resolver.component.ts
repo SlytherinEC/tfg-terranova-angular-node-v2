@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DiceComponent } from '../../dice/dice.component';
 
@@ -14,8 +14,9 @@ export class ExplorableResolverComponent {
   @Output() rollDice = new EventEmitter<void>();
   @Output() acceptResult = new EventEmitter<void>();
 
+  @ViewChild('diceRef') diceComponent!: DiceComponent;
+
   diceResult: number | null = null;
-  showDiceAnimation: boolean = false;
   resultMessage: string = '';
   resultType: string = '';
   resultDetails: any = null;
@@ -26,8 +27,6 @@ export class ExplorableResolverComponent {
 
   onRollDice(): void {
     if (this.isLoading) return;
-
-    this.showDiceAnimation = true;
     this.rollDice.emit();
   }
 
@@ -38,6 +37,17 @@ export class ExplorableResolverComponent {
     this.resultType = type;
     this.resultDetails = details;
     this.showAcceptButton = true;
+
+    // Animamos el dado utilizando el componente existente
+    setTimeout(() => {
+      if (this.diceComponent) {
+        this.diceComponent.lanzarDado();
+        // Sobreescribir el resultado del dado una vez que la animación ha comenzado
+        setTimeout(() => {
+          this.diceComponent.resultado = result;
+        }, 100);
+      }
+    }, 0);
   }
 
   onAcceptResult(): void {
