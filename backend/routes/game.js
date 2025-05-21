@@ -31,4 +31,8 @@ router.get('/partidas/:id_partida/estadisticas', gameController.obtenerEstadisti
 // Rutas de gestión de la armería
 router.post('/partidas/:id_partida/resolver-armeria', gameController.resolverArmeria);
 
+// Rutas para la exploración interactiva
+router.post('/partidas/:id_partida/explorar-tirar-dado', gameController.explorarTirarDado);
+router.post('/partidas/:id_partida/explorar-resolver', gameController.explorarResolver);
+
 module.exports = router;
