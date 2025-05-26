@@ -1,0 +1,140 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+.modal-content {
+  background-color: rgba(10, 25, 47, 0.95);
+  border: 2px solid #1A7A7A;
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #FFD54F;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  letter-spacing: 1px;
+}
+
+.modal-body {
+  margin-bottom: 2rem;
+}
+
+.modal-message {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #FFD54F;
+  text-align: center;
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.pixel-button {
+  padding: 10px 20px;
+  font-size: 0.8rem;
+  color: #FFD54F;
+  background-color: rgba(10, 25, 47, 0.8);
+  border: 3px solid #1A7A7A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow:
+    0 0 0 2px rgba(26, 122, 122, 0.2),
+    inset 0 0 0 1px rgba(255, 213, 79, 0.1);
+  position: relative;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+
+  &:hover {
+    background-color: rgba(26, 122, 122, 0.6);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 1px solid rgba(26, 122, 122, 0.7);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+}
+
+.accept-button {
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.3);
+
+  &:hover {
+    background-color: rgba(76, 175, 80, 0.5);
+  }
+
+  &::before {
+    border-color: rgba(76, 175, 80, 0.7);
+  }
+}
+
+/* Media queries para responsividad */
+@media screen and (max-width: 768px) {
+  .modal-content {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-message {
+    font-size: 0.7rem;
+  }
+
+  .pixel-button {
+    font-size: 0.7rem;
+    padding: 8px 16px;
+  }
+}
