@@ -122,6 +122,13 @@ const gameController = {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
 
+      // NUEVO: Verificar que adyacencias existe
+    if (!partida.adyacencias) {
+      console.error('Partida sin adyacencias definidas:', id_partida);
+      // Si no existe, intentar reconstruirlo (opción avanzada)
+      // O simplemente informar del error
+    }
+
       res.status(200).json(partida);
     } catch (error) {
       console.error('Error al obtener partida:', error);
