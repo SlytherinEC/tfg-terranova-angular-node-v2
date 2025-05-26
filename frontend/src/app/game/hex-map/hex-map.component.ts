@@ -28,6 +28,8 @@ export class HexMapComponent implements OnInit, OnChanges {
   @Input() posicionActual: { x: number, y: number } = { x: 0, y: 0 };
   @Input() codigosActivacion: number = 0;
   @Output() cellClick = new EventEmitter<HexCell>();
+  // input de adyacencias 
+  @Input() adyacencias: { [key: string]: { x: number, y: number }[] } = {};
 
   mapRows: HexCell[][] = [];
 
@@ -150,6 +152,16 @@ export class HexMapComponent implements OnInit, OnChanges {
     }
   }
 
+  // NUEVO: Añadir método para verificar si una celda es adyacente
+  esCeldaAdyacente(celda: HexCell): boolean {
+    if (!this.adyacencias) return false;
+    
+    const key = `${this.posicionActual.x},${this.posicionActual.y}`;
+    const celdasAdyacentes = this.adyacencias[key] || [];
+    
+    return celdasAdyacentes.some(adj => adj.x === celda.x && adj.y === celda.y);
+  }
+
   onCellClick(cell: HexCell): void {
     // Verificar si la celda es accesible
     if (cell.tipo === 'inaccesible') {
@@ -158,6 +170,14 @@ export class HexMapComponent implements OnInit, OnChanges {
 
     // Verificar si hay una puerta bloqueada
     if (cell.puerta_bloqueada && this.codigosActivacion < cell.codigos_requeridos) {
+      return;
+    }
+
+    // NUEVO: Verificar adyacencia solo si no es la celda actual
+    if (!(cell.x === this.posicionActual.x && cell.y === this.posicionActual.y) && 
+        !this.esCeldaAdyacente(cell)) {
+      // Opcional: podríamos emitir un evento especial para mostrar un mensaje
+      console.log('No es adyacente:', cell);
       return;
     }
 

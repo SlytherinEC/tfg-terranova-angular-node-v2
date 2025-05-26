@@ -13,6 +13,7 @@ import { StressManagerComponent } from '../stress-manager/stress-manager.compone
 import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
 import { ExplorableResolverComponent } from '../explorable-resolver/explorable-resolver.component';
 import { DiceService } from '../../services/dice.service';
+import { InfoModalComponent } from '../info-modal/info-modal.component';
 
 @Component({
   selector: 'app-game-board',
@@ -24,7 +25,8 @@ import { DiceService } from '../../services/dice.service';
     HexMapComponent,
     StressManagerComponent,
     ArmoryResolverComponent,
-    ExplorableResolverComponent
+    ExplorableResolverComponent,
+    InfoModalComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -49,7 +51,8 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     dificultad: 'NORMAL',
     logros: {},
     fecha_creacion: '',
-    fecha_actualizacion: ''
+    fecha_actualizacion: '',
+    adyacencias: {},
   };
 
   idPartida!: number;
@@ -76,6 +79,11 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   showArmeria: boolean = false;
   armeriaOptions: any[] = [];
   @ViewChild('armeriaSelector') armeriaSelector: any;
+
+  // propiedades para el modal informativo
+  showInfoModal: boolean = false;
+  infoModalTitle: string = '';
+  infoModalMessage: string = '';
 
   constructor(
     private gameService: GameService,
@@ -194,13 +202,13 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
     // Si hay un encuentro activo, no permitir moverse
     if (this.gameState.encuentro_actual) {
-      this.mensaje = 'No puedes moverte durante un combate';
+      this.mostrarModalInfo('Movimiento Restringido', 'No puedes moverte durante un combate');
       return;
     }
 
     // Si hay un evento activo, no permitir moverse
     if (this.showEvent) {
-      this.mensaje = 'Debes resolver el evento actual antes de moverte';
+      this.mostrarModalInfo('Acción Requerida', 'Debes resolver el evento actual antes de moverte');
       return;
     }
 
@@ -241,21 +249,52 @@ export class GameBoardComponent implements OnInit, OnDestroy {
           // Guardar estado automáticamente
           this.gameService.autoSaveGameState();
         } else {
-          this.mensaje = response.mensaje || 'Error al explorar';
+          // Mostrar modal con el mensaje del backend
+          this.mostrarModalInfo('Acceso Denegado', response.mensaje || 'Error al explorar');
         }
         this.isLoading = false;
       },
       error: (err) => {
+        // Mostrar modal con el mensaje de error del backend
+        let titulo = 'Error';
+        let mensaje = 'Error al explorar la habitación';
+
         // Asegurarse de mostrar el mensaje de error del servidor si está disponible
         if (err.error && err.error.mensaje) {
-          this.mensaje = err.error.mensaje;
+          mensaje = err.error.mensaje;
+
+          // Personalizar el título según el tipo de error
+          if (mensaje.includes('adyacente')) {
+            titulo = 'Movimiento Inválido';
+          } else if (mensaje.includes('bloqueada') || mensaje.includes('códigos')) {
+            titulo = 'Puerta Bloqueada';
+          } else if (mensaje.includes('ya ha sido visitada') || mensaje.includes('una vez')) {
+            titulo = 'Habitación Agotada';
+          }
+
         } else {
           this.mensaje = 'Error al explorar la habitación';
         }
+
+        this.mostrarModalInfo(titulo, mensaje);
         console.error('Error al explorar:', err);
         this.isLoading = false;
       }
     });
+  }
+
+  // método para mostrar el modal informativo
+  private mostrarModalInfo(titulo: string, mensaje: string): void {
+    this.infoModalTitle = titulo;
+    this.infoModalMessage = mensaje;
+    this.showInfoModal = true;
+  }
+
+  // método para cerrar el modal informativo
+  onCloseInfoModal(): void {
+    this.showInfoModal = false;
+    this.infoModalTitle = '';
+    this.infoModalMessage = '';
   }
 
   // método para tirar el dado de exploración
