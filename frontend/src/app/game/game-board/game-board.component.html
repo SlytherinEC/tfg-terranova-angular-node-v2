@@ -144,6 +144,15 @@
     </div>
   </div>
 
+  <!-- Modal para revisitar habitaciones -->
+  <div class="modal-overlay" *ngIf="showRevisit">
+    <div class="modal-content">
+      <app-revisit-resolver #revisitResolver [isLoading]="isLoading" (rollDice)="onRollRevisitDice()"
+        (acceptResult)="onAcceptRevisitResult()">
+      </app-revisit-resolver>
+    </div>
+  </div>
+
   <!-- Panel de combate -->
   <div class="modal-overlay" *ngIf="showEncounter">
     <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
