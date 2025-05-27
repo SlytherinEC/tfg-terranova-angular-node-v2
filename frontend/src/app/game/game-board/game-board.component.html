@@ -32,7 +32,7 @@
       <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
       <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
         [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
-        [adyacencias]="gameState.adyacencias" (cellClick)="onCellClick($event)"></app-hex-map>
+        [adyacencias]="gameState.adyacencias" (cellClick)="onCellClick($event)" (invalidMove)="onInvalidMove($event)"></app-hex-map>
 
       <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
         Cargando mapa...
@@ -212,7 +212,7 @@
     <div class="close-text">Toca para cerrar</div>
   </div> -->
 
-  <!-- Modal informativo para mensajes de error/información -->
+  <!-- Modal informativo para mensajes de error/información - DEBE ESTAR AL FINAL -->
   <app-info-modal [show]="showInfoModal" [title]="infoModalTitle" [message]="infoModalMessage"
     (close)="onCloseInfoModal()">
   </app-info-modal>

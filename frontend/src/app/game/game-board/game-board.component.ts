@@ -191,12 +191,23 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // MÉTODO DE PRUEBA: Añadir temporalmente para debugging
+  testModal(): void {
+    console.log('Mostrando modal de prueba');
+    this.mostrarModalInfo('Prueba', 'Este es un mensaje de prueba');
+  }
+
   // Método que se llama cuando se hace clic en una celda del mapa hexagonal
   onCellClick(cell: HexCell): void {
-    if (!this.gameState) return;
+    
+    if (!this.gameState) {
+      console.log('No hay gameState');
+      return;
+    }
 
     // Si la partida ha terminado, no permitir acciones
     if (this.gameState.estado !== 'EN_CURSO') {
+      console.log('Partida terminada');
       return;
     }
 
@@ -285,9 +296,11 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   // método para mostrar el modal informativo
   private mostrarModalInfo(titulo: string, mensaje: string): void {
+    console.log('Mostrando modal informativo:', titulo, mensaje);
     this.infoModalTitle = titulo;
     this.infoModalMessage = mensaje;
     this.showInfoModal = true;
+    console.log('Estado del modal:', this.showInfoModal);
   }
 
   // método para cerrar el modal informativo
@@ -295,6 +308,27 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     this.showInfoModal = false;
     this.infoModalTitle = '';
     this.infoModalMessage = '';
+  }
+
+  // método para manejar movimientos inválidos del mapa
+  onInvalidMove(event: {type: string, message: string, cell: any}): void {
+    console.log('Movimiento inválido:', event);
+    
+    let titulo = 'Movimiento Inválido';
+    
+    switch (event.type) {
+      case 'inaccessible':
+        titulo = 'Zona Inaccesible';
+        break;
+      case 'locked_door':
+        titulo = 'Puerta Bloqueada';
+        break;
+      case 'not_adjacent':
+        titulo = 'Movimiento Restringido';
+        break;
+    }
+    
+    this.mostrarModalInfo(titulo, event.message);
   }
 
   // método para tirar el dado de exploración
