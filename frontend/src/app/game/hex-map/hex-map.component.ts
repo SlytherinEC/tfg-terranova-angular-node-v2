@@ -28,6 +28,9 @@ export class HexMapComponent implements OnInit, OnChanges {
   @Input() posicionActual: { x: number, y: number } = { x: 0, y: 0 };
   @Input() codigosActivacion: number = 0;
   @Output() cellClick = new EventEmitter<HexCell>();
+  @Output() invalidMove = new EventEmitter<{type: string, message: string, cell: HexCell}>();
+  // input de adyacencias 
+  @Input() adyacencias: { [key: string]: { x: number, y: number }[] } = {};
 
   mapRows: HexCell[][] = [];
 
@@ -64,7 +67,8 @@ export class HexMapComponent implements OnInit, OnChanges {
         );
 
         if (found) {
-          row.push(found.find(c => c.x === x && c.y === y)!);
+          const cell = found.find(c => c.x === x && c.y === y)!;
+          row.push(cell);
         } else {
           // Si no existe, creamos una celda vacía
           row.push({
@@ -104,10 +108,10 @@ export class HexMapComponent implements OnInit, OnChanges {
 
     // Configuración de las puertas bloqueadas
     const puertasBloqueadas = [
-      { y: 7, x: 3, codigos: 4 },
-      { y: 8, x: 7, codigos: 1 },
-      { y: 10, x: 0, codigos: 3 },
-      { y: 15, x: 0, codigos: 6 }
+      { y: 6, x: 3, codigos: 4 },
+      { y: 7, x: 7, codigos: 1 },
+      { y: 9, x: 0, codigos: 3 },
+      { y: 14, x: 0, codigos: 6 }
     ];
 
     // Creamos el mapa basado en la definición
@@ -150,18 +154,52 @@ export class HexMapComponent implements OnInit, OnChanges {
     }
   }
 
+  // NUEVO: Añadir método para verificar si una celda es adyacente
+  esCeldaAdyacente(celda: HexCell): boolean {
+    if (!this.adyacencias) return false;
+    
+    const key = `${this.posicionActual.x},${this.posicionActual.y}`;
+    const celdasAdyacentes = this.adyacencias[key] || [];
+    
+    return celdasAdyacentes.some(adj => adj.x === celda.x && adj.y === celda.y);
+  }
+
   onCellClick(cell: HexCell): void {
+    console.log('Click en celda:', cell);
+    
     // Verificar si la celda es accesible
     if (cell.tipo === 'inaccesible') {
+      this.invalidMove.emit({
+        type: 'inaccessible',
+        message: 'Esta zona es inaccesible',
+        cell: cell
+      });
       return;
     }
 
     // Verificar si hay una puerta bloqueada
     if (cell.puerta_bloqueada && this.codigosActivacion < cell.codigos_requeridos) {
+      const codigosFaltantes = cell.codigos_requeridos - this.codigosActivacion;
+      this.invalidMove.emit({
+        type: 'locked_door',
+        message: `Puerta bloqueada. Necesitas ${cell.codigos_requeridos} códigos de activación (tienes ${this.codigosActivacion}). Te faltan ${codigosFaltantes} códigos.`,
+        cell: cell
+      });
       return;
     }
 
-    // Emitir evento de click
+    // NUEVO: Verificar adyacencia solo si no es la celda actual
+    if (!(cell.x === this.posicionActual.x && cell.y === this.posicionActual.y) && 
+        !this.esCeldaAdyacente(cell)) {
+      this.invalidMove.emit({
+        type: 'not_adjacent',
+        message: 'Solo puedes moverte a habitaciones adyacentes',
+        cell: cell
+      });
+      return;
+    }
+
+    // Emitir evento de click válido
     this.cellClick.emit(cell);
   }
 

@@ -1,0 +1,17 @@
+<div class="info-modal-overlay" *ngIf="show" (click)="onBackdropClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ title }}</h2>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-message">{{ message }}</p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="pixel-button accept-button" (click)="onClose()">
+        ENTENDIDO
+      </button>
+    </div>
+  </div>
+</div>

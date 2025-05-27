@@ -18,6 +18,7 @@ export interface GameState {
   logros: { [key: string]: boolean };
   fecha_creacion: string;
   fecha_actualizacion: string;
+  adyacencias: { [key: string]: Position[] };
   
   // Añadir esta propiedad:
   ultimo_combate?: {

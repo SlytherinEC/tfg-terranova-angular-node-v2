@@ -713,15 +713,29 @@ function esMovimientoValido(partida, coordenadas) {
 }
 
 function revisitarHabitacion(partida, celda) {
+
+  // Caso especial para estaciones de oxígeno
+  if (celda.tipo === 'estacion_oxigeno') {
+    partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + 3);
+    return {
+      exito: true,
+      resultado: {
+        tipo: 'estacion_oxigeno',
+        mensaje: 'Has recuperado 3 puntos de oxígeno'
+      },
+      partida
+    };
+  }
+
   // Tirar dado para determinar qué sucede al revisitar
   const resultado = tirarDado();
 
   if (resultado <= 2) {
-    // Encuentro con alien
+    // 1-2: Encuentro con alien
     return iniciarEncuentroAleatorio(partida);
   }
-  else if (resultado <= 4) {
-    // Habitación vacía, reduce estrés
+  else if (resultado <= 5) {
+    // 3-5: Habitación vacía, reduce estrés
     partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
     return {
       exito: true,
@@ -733,7 +747,7 @@ function revisitarHabitacion(partida, celda) {
     };
   }
   else {
-    // Encuentras un pasajero
+    // 6: Encuentras un pasajero
     partida.pasajeros += 1;
     return {
       exito: true,

@@ -11,6 +11,10 @@ import { HexMapComponent, HexCell } from '../hex-map/hex-map.component';
 import { MapService } from '../../services/map.service';
 import { StressManagerComponent } from '../stress-manager/stress-manager.component';
 import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.component';
+import { ExplorableResolverComponent } from '../explorable-resolver/explorable-resolver.component';
+import { DiceService } from '../../services/dice.service';
+import { InfoModalComponent } from '../info-modal/info-modal.component';
+import { RevisitResolverComponent } from '../revisit-resolver/revisit-resolver.component';
 
 @Component({
   selector: 'app-game-board',
@@ -21,7 +25,10 @@ import { ArmoryResolverComponent } from '../armory-resolver/armory-resolver.comp
     EncounterComponent,
     HexMapComponent,
     StressManagerComponent,
-    ArmoryResolverComponent
+    ArmoryResolverComponent,
+    ExplorableResolverComponent,
+    InfoModalComponent,
+    RevisitResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -46,7 +53,8 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     dificultad: 'NORMAL',
     logros: {},
     fecha_creacion: '',
-    fecha_actualizacion: ''
+    fecha_actualizacion: '',
+    adyacencias: {},
   };
 
   idPartida!: number;
@@ -60,14 +68,38 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   combatMessage: string | null = null;
   currentDiceResult: number = 1;
 
+  // Propiedades del explorable resolver
+  showExplorable: boolean = false;
+  explorableCellCoords: any = null;
+  explorableDiceResult: number | null = null;
+  explorableResultMessage: string = '';
+  explorableResultType: string = '';
+  explorableResultDetails: any = null;
+  @ViewChild('explorableResolver') explorableResolver!: ExplorableResolverComponent;
+
+  // Propiedades del revisit resolver
+  showRevisit: boolean = false;
+  revisitCellCoords: any = null;
+  revisitDiceResult: number | null = null;
+  revisitResultMessage: string = '';
+  revisitResultType: string = '';
+  revisitResultDetails: any = null;
+  @ViewChild('revisitResolver') revisitResolver!: any;
+
   // Propiedades de la armería
   showArmeria: boolean = false;
   armeriaOptions: any[] = [];
   @ViewChild('armeriaSelector') armeriaSelector: any;
 
+  // propiedades para el modal informativo
+  showInfoModal: boolean = false;
+  infoModalTitle: string = '';
+  infoModalMessage: string = '';
+
   constructor(
     private gameService: GameService,
     private mapService: MapService,
+    private diceService: DiceService,
     private route: ActivatedRoute,
     private router: Router
   ) { }
@@ -170,24 +202,35 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // MÉTODO DE PRUEBA: Añadir temporalmente para debugging
+  testModal(): void {
+    console.log('Mostrando modal de prueba');
+    this.mostrarModalInfo('Prueba', 'Este es un mensaje de prueba');
+  }
+
   // Método que se llama cuando se hace clic en una celda del mapa hexagonal
   onCellClick(cell: HexCell): void {
-    if (!this.gameState) return;
+    
+    if (!this.gameState) {
+      console.log('No hay gameState');
+      return;
+    }
 
     // Si la partida ha terminado, no permitir acciones
     if (this.gameState.estado !== 'EN_CURSO') {
+      console.log('Partida terminada');
       return;
     }
 
     // Si hay un encuentro activo, no permitir moverse
     if (this.gameState.encuentro_actual) {
-      this.mensaje = 'No puedes moverte durante un combate';
+      this.mostrarModalInfo('Movimiento Restringido', 'No puedes moverte durante un combate');
       return;
     }
 
     // Si hay un evento activo, no permitir moverse
     if (this.showEvent) {
-      this.mensaje = 'Debes resolver el evento actual antes de moverte';
+      this.mostrarModalInfo('Acción Requerida', 'Debes resolver el evento actual antes de moverte');
       return;
     }
 
@@ -199,7 +242,21 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Explorar la celda
+    // Si es una celda explorable y no está explorada, mostrar el componente explorable
+    if (cell.tipo === 'explorable' && !cell.explorado) {
+      this.showExplorable = true;
+      this.explorableCellCoords = { x: cell.x, y: cell.y };
+      return;
+    }
+
+    // Si es una celda ya explorada (revisita), mostrar el componente de revisita
+    if (cell.explorado && cell.tipo === 'explorable') {
+      this.showRevisit = true;
+      this.revisitCellCoords = { x: cell.x, y: cell.y };
+      return;
+    }
+
+    // Explorar la celda (para tipos especiales como armería, control, etc.)
     this.explorarCelda(cell);
   }
 
@@ -221,18 +278,146 @@ export class GameBoardComponent implements OnInit, OnDestroy {
           // Guardar estado automáticamente
           this.gameService.autoSaveGameState();
         } else {
-          this.mensaje = response.mensaje || 'Error al explorar';
+          // Mostrar modal con el mensaje del backend
+          this.mostrarModalInfo('Acceso Denegado', response.mensaje || 'Error al explorar');
         }
         this.isLoading = false;
       },
       error: (err) => {
+        // Mostrar modal con el mensaje de error del backend
+        let titulo = 'Error';
+        let mensaje = 'Error al explorar la habitación';
+
         // Asegurarse de mostrar el mensaje de error del servidor si está disponible
         if (err.error && err.error.mensaje) {
-          this.mensaje = err.error.mensaje;
+          mensaje = err.error.mensaje;
+
+          // Personalizar el título según el tipo de error
+          if (mensaje.includes('adyacente')) {
+            titulo = 'Movimiento Inválido';
+          } else if (mensaje.includes('bloqueada') || mensaje.includes('códigos')) {
+            titulo = 'Puerta Bloqueada';
+          } else if (mensaje.includes('ya ha sido visitada') || mensaje.includes('una vez')) {
+            titulo = 'Habitación Agotada';
+          }
+
         } else {
           this.mensaje = 'Error al explorar la habitación';
         }
+
+        this.mostrarModalInfo(titulo, mensaje);
         console.error('Error al explorar:', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // método para mostrar el modal informativo
+  private mostrarModalInfo(titulo: string, mensaje: string): void {
+    console.log('Mostrando modal informativo:', titulo, mensaje);
+    this.infoModalTitle = titulo;
+    this.infoModalMessage = mensaje;
+    this.showInfoModal = true;
+    console.log('Estado del modal:', this.showInfoModal);
+  }
+
+  // método para cerrar el modal informativo
+  onCloseInfoModal(): void {
+    this.showInfoModal = false;
+    this.infoModalTitle = '';
+    this.infoModalMessage = '';
+  }
+
+  // método para manejar movimientos inválidos del mapa
+  onInvalidMove(event: {type: string, message: string, cell: any}): void {
+    console.log('Movimiento inválido:', event);
+    
+    let titulo = 'Movimiento Inválido';
+    
+    switch (event.type) {
+      case 'inaccessible':
+        titulo = 'Zona Inaccesible';
+        break;
+      case 'locked_door':
+        titulo = 'Puerta Bloqueada';
+        break;
+      case 'not_adjacent':
+        titulo = 'Movimiento Restringido';
+        break;
+    }
+    
+    this.mostrarModalInfo(titulo, event.message);
+  }
+
+  // método para tirar el dado de exploración
+  onRollExplorableDice(): void {
+    if (!this.idPartida || !this.explorableCellCoords) return;
+
+    this.isLoading = true;
+
+    // Usar el servicio de juego para tirar el dado
+    this.gameService.tirarDadoExploracion(this.idPartida).subscribe({
+      next: (response: any) => {
+        if (response.exito) {
+          this.explorableDiceResult = response.resultado;
+          this.explorableResultMessage = response.mensaje;
+          this.explorableResultType = response.tipo;
+
+          // Actualizar el componente explorable-resolver con el resultado del servidor
+          if (this.explorableResolver) {
+            this.explorableResolver.setDiceResult(
+              response.resultado,
+              response.mensaje,
+              response.tipo,
+              response.resultDetails || null
+            );
+          }
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al tirar dado de exploración:', err);
+        this.mensaje = 'Error al tirar dado';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // método para resolver la exploración
+  onAcceptExplorableResult(): void {
+    if (!this.explorableCellCoords) return;
+
+    this.isLoading = true;
+    this.gameService.resolverExploracion(this.idPartida, this.explorableCellCoords).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          this.procesarResultadoExploracion(response);
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+
+          // Guardar estado automáticamente
+          this.gameService.autoSaveGameState();
+        } else {
+          this.mostrarModalInfo('Error', response.mensaje || 'Error al resolver exploración');
+        }
+
+        // Cerrar el modal de explorable
+        this.showExplorable = false;
+        this.explorableCellCoords = null;
+        this.explorableDiceResult = null;
+        this.explorableResultMessage = '';
+        this.explorableResultType = '';
+        this.explorableResultDetails = null;
+
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al resolver exploración:', err);
+        this.mostrarModalInfo('Error', 'Error al resolver la exploración');
         this.isLoading = false;
       }
     });
@@ -537,6 +722,78 @@ export class GameBoardComponent implements OnInit, OnDestroy {
         this.mensaje = 'Error al resolver armería';
         this.isLoading = false;
         this.showArmeria = false;
+      }
+    });
+  }
+
+  // Métodos para manejar la revisita
+  onRollRevisitDice(): void {
+    if (!this.idPartida) return;
+
+    this.isLoading = true;
+    this.gameService.tirarDadoRevisita(this.idPartida).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          this.revisitDiceResult = response.resultado;
+          this.revisitResultMessage = response.mensaje;
+          this.revisitResultType = response.tipo;
+
+          // Configurar el resultado en el componente
+          if (this.revisitResolver) {
+            this.revisitResolver.setDiceResult(
+              response.resultado,
+              response.mensaje,
+              response.tipo
+            );
+          }
+        } else {
+          this.mostrarModalInfo('Error', response.mensaje || 'Error al tirar dado');
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al tirar dado de revisita:', err);
+        this.mostrarModalInfo('Error', 'Error al tirar el dado');
+        this.isLoading = false;
+      }
+    });
+  }
+
+  onAcceptRevisitResult(): void {
+    if (!this.revisitCellCoords) return;
+
+    this.isLoading = true;
+    this.gameService.resolverRevisita(this.idPartida, this.revisitCellCoords).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          this.procesarResultadoExploracion(response);
+
+          // Actualizar el estado del juego
+          const state = this.gameService.getGameState();
+          if (state) {
+            this.gameState = state;
+          }
+
+          // Guardar estado automáticamente
+          this.gameService.autoSaveGameState();
+        } else {
+          this.mostrarModalInfo('Error', response.mensaje || 'Error al resolver revisita');
+        }
+
+        // Cerrar el modal de revisita
+        this.showRevisit = false;
+        this.revisitCellCoords = null;
+        this.revisitDiceResult = null;
+        this.revisitResultMessage = '';
+        this.revisitResultType = '';
+        this.revisitResultDetails = null;
+
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al resolver revisita:', err);
+        this.mostrarModalInfo('Error', 'Error al resolver la revisita');
+        this.isLoading = false;
       }
     });
   }

@@ -32,7 +32,7 @@
       <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
       <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
         [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
-        (cellClick)="onCellClick($event)"></app-hex-map>
+        [adyacencias]="gameState.adyacencias" (cellClick)="onCellClick($event)" (invalidMove)="onInvalidMove($event)"></app-hex-map>
 
       <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
         Cargando mapa...
@@ -135,6 +135,24 @@
     </div>
   </div>
 
+  <!-- Modal para habitaciones explorables -->
+  <div class="modal-overlay" *ngIf="showExplorable">
+    <div class="modal-content">
+      <app-explorable-resolver #explorableResolver [isLoading]="isLoading" (rollDice)="onRollExplorableDice()"
+        (acceptResult)="onAcceptExplorableResult()">
+      </app-explorable-resolver>
+    </div>
+  </div>
+
+  <!-- Modal para revisitar habitaciones -->
+  <div class="modal-overlay" *ngIf="showRevisit">
+    <div class="modal-content">
+      <app-revisit-resolver #revisitResolver [isLoading]="isLoading" (rollDice)="onRollRevisitDice()"
+        (acceptResult)="onAcceptRevisitResult()">
+      </app-revisit-resolver>
+    </div>
+  </div>
+
   <!-- Panel de combate -->
   <div class="modal-overlay" *ngIf="showEncounter">
     <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
@@ -198,10 +216,15 @@
   </div>
 
   <!-- Mensaje de error o información -->
-  <div class="message-popup" *ngIf="mensaje" (click)="mensaje = null">
+  <!-- <div class="message-popup" *ngIf="mensaje" (click)="mensaje = null">
     {{mensaje}}
     <div class="close-text">Toca para cerrar</div>
-  </div>
+  </div> -->
+
+  <!-- Modal informativo para mensajes de error/información - DEBE ESTAR AL FINAL -->
+  <app-info-modal [show]="showInfoModal" [title]="infoModalTitle" [message]="infoModalMessage"
+    (close)="onCloseInfoModal()">
+  </app-info-modal>
 
   <!-- Botones de control -->
   <div class="game-controls">
