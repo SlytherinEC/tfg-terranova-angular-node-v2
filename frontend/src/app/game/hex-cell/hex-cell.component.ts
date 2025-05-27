@@ -17,16 +17,7 @@ export class HexCellComponent {
   @Output() cellClick = new EventEmitter<HexCell>();
 
   onClick(): void {
-    // No permitir clic en celdas inaccesibles
-    if (this.cell.tipo === 'inaccesible') {
-      return;
-    }
-
-    // No permitir clic en puertas bloqueadas sin suficientes códigos
-    if (this.cell.puerta_bloqueada && this.codigosActivacion < this.cell.codigos_requeridos) {
-      return;
-    }
-
+    // Siempre emitir el evento, dejar que el componente padre maneje las validaciones
     this.cellClick.emit(this.cell);
   }
 
