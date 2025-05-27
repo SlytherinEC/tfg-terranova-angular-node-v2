@@ -239,4 +239,34 @@ export class GameService {
       })
     );
   }
+
+  // Tirar dado para revisita
+  tirarDadoRevisita(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/revisitar-tirar-dado`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de revisita:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver revisita
+  resolverRevisita(idPartida: number, coordenadas: { x: number, y: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/revisitar-resolver`,
+      { coordenadas },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver revisita:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }
