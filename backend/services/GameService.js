@@ -731,11 +731,11 @@ function revisitarHabitacion(partida, celda) {
   const resultado = tirarDado();
 
   if (resultado <= 2) {
-    // Encuentro con alien
+    // 1-2: Encuentro con alien
     return iniciarEncuentroAleatorio(partida);
   }
-  else if (resultado <= 4) {
-    // Habitación vacía, reduce estrés
+  else if (resultado <= 5) {
+    // 3-5: Habitación vacía, reduce estrés
     partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
     return {
       exito: true,
@@ -747,7 +747,7 @@ function revisitarHabitacion(partida, celda) {
     };
   }
   else {
-    // Encuentras un pasajero
+    // 6: Encuentras un pasajero
     partida.pasajeros += 1;
     return {
       exito: true,
