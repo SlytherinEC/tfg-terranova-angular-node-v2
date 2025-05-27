@@ -1,0 +1,45 @@
+<div class="revisit-container">
+  <div class="revisit-header">
+    <h2 class="revisit-title">REVISITANDO HABITACIÓN</h2>
+  </div>
+
+  <div class="revisit-content">
+    <div class="left-panel">
+      <div class="dice-container">
+        <!-- Usamos el componente existente, con su animación incorporada -->
+        <app-dice #diceRef [resultado]="diceResult || 1">
+        </app-dice>
+      </div>
+
+      <button class="roll-button" [disabled]="isLoading || showAcceptButton" (click)="onRollDice()">
+        {{ diceResult === null ? 'TIRAR DADO' : 'TIRADO: ' + diceResult }}
+      </button>
+    </div>
+
+    <div class="right-panel">
+      <div class="info-section">
+        <p class="info-message">{{ diceResult === null ? infoMessage : getDiceResultDescription() }}</p>
+        
+        <div *ngIf="diceResult !== null" class="result-icon">
+          {{ getResultIcon() }}
+        </div>
+
+        <div *ngIf="diceResult !== null" class="result-explanation">
+          <div *ngIf="diceResult <= 2" class="encounter-warning">
+            ⚠️ Se iniciará un combate
+          </div>
+          <div *ngIf="diceResult >= 3 && diceResult <= 5" class="stress-relief">
+            ✨ Estrés reducido en 1 punto
+          </div>
+          <div *ngIf="diceResult === 6" class="passenger-found">
+            🎉 Nuevo pasajero se une al grupo
+          </div>
+        </div>
+      </div>
+
+      <button *ngIf="showAcceptButton" class="accept-button" [disabled]="isLoading" (click)="onAcceptResult()">
+        ACEPTAR
+      </button>
+    </div>
+  </div>
+</div> 
