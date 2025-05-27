@@ -924,6 +924,159 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver exploración', error: error.message });
     }
   },
+
+  // Método para revisitar celda interactivamente (primera fase: tirar dado)
+  revisitarTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Guardar el resultado temporalmente
+      partida.ultimo_dado_revisita = valorDado;
+      await Partida.updateEstado(id_partida, partida);
+
+      // Preparar mensaje según el valor del dado
+      let mensaje = '';
+      let tipo = '';
+
+      if (valorDado <= 2) {
+        mensaje = 'Encuentro: ¡Hay un alien en esta habitación!';
+        tipo = 'encuentro';
+      } else if (valorDado <= 5) {
+        mensaje = 'Habitación vacía: Te sientes más calmado (-1 Estrés)';
+        tipo = 'habitacion_vacia';
+      } else {
+        mensaje = 'Superviviente: ¡Has encontrado un pasajero!';
+        tipo = 'pasajero';
+      }
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        mensaje,
+        tipo
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de revisita:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de revisita', error: error.message });
+    }
+  },
+
+  // Método para revisitar celda interactivamente (segunda fase: resolver resultado)
+  revisitarResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { coordenadas } = req.body;
+
+      // Validar coordenadas
+      if (!coordenadas || typeof coordenadas.x !== 'number' || typeof coordenadas.y !== 'number') {
+        return res.status(400).json({ mensaje: 'Coordenadas inválidas' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Obtener valor del dado almacenado
+      const valorDado = partida.ultimo_dado_revisita;
+
+      if (!valorDado) {
+        return res.status(400).json({ mensaje: 'Debes tirar el dado primero' });
+      }
+
+      // Actualizar posición actual
+      partida.posicion_actual = { ...coordenadas };
+
+      // Obtener celda actual
+      const celda = partida.mapa[coordenadas.y][coordenadas.x];
+
+      // Consumir oxígeno
+      partida.capitan.oxigeno -= 1;
+      if (partida.capitan.oxigeno <= 0) {
+        return finalizarPartida(partida, 'DERROTA', 'Te has quedado sin oxígeno');
+      }
+
+      // Resolver según el valor del dado
+      let resultado;
+
+      if (valorDado <= 2) {
+        // 1-2: Encuentro con alien
+        const alienAleatorio = obtenerAlienAleatorio();
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'encuentro',
+            mensaje: `¡Te has encontrado con un ${alienAleatorio.nombre}!`,
+            encuentro: {
+              alien: alienAleatorio.tipo,
+              pg: alienAleatorio.pg,
+              alienData: alienAleatorio
+            }
+          }
+        };
+        partida.encuentro_actual = {
+          alien: alienAleatorio.tipo,
+          pg: alienAleatorio.pg
+        };
+      } else if (valorDado <= 5) {
+        // 3-5: Habitación vacía, reduce estrés
+        partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'habitacion_vacia',
+            mensaje: 'La habitación está vacía. Te sientes un poco más calmado (-1 Estrés).'
+          }
+        };
+      } else {
+        // 6: Encuentras un pasajero
+        partida.pasajeros += 1;
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'pasajero',
+            mensaje: '¡Has encontrado un superviviente! Se une a tu grupo.'
+          }
+        };
+      }
+
+      // Limpiar el dado de revisita
+      partida.ultimo_dado_revisita = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      // Añadir la partida actualizada a la respuesta
+      resultado.partida = partida;
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver revisita:', error);
+      res.status(500).json({ mensaje: 'Error al resolver revisita', error: error.message });
+    }
+  },
 };
 
 // Helper function

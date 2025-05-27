@@ -35,4 +35,8 @@ router.post('/partidas/:id_partida/resolver-armeria', gameController.resolverArm
 router.post('/partidas/:id_partida/explorar-tirar-dado', gameController.explorarTirarDado);
 router.post('/partidas/:id_partida/explorar-resolver', gameController.explorarResolver);
 
+// Rutas para la revisita interactiva
+router.post('/partidas/:id_partida/revisitar-tirar-dado', gameController.revisitarTirarDado);
+router.post('/partidas/:id_partida/revisitar-resolver', gameController.revisitarResolver);
+
 module.exports = router;
