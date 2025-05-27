@@ -1,5 +1,5 @@
-<div class="modal-overlay" *ngIf="show" (click)="onBackdropClick($event)">
-  <div class="modal-content">
+<div class="info-modal-overlay" *ngIf="show" (click)="onBackdropClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">{{ title }}</h2>
     </div>
