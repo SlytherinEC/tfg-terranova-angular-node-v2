@@ -67,7 +67,7 @@ export class RevisitResolverComponent {
     if (this.diceResult <= 2) {
       return '👾'; // Alien
     } else if (this.diceResult <= 5) {
-      return '😌'; // Calmado
+      return '🔹'; // Icono más pixelart para calmado/estrés reducido
     } else {
       return '👤'; // Pasajero
     }

@@ -51,7 +51,7 @@
       <div class="sidebar-section">
         <h3 class="section-title">PASAJEROS</h3>
         <div class="passengers-container">
-          <div class="passenger" *ngFor="let _ of [].constructor(gameState.pasajeros || 0)"></div>
+          <div class="passenger-icon" *ngFor="let _ of [].constructor(gameState.pasajeros || 0)">👤</div>
         </div>
         <div class="action-buttons" *ngIf="gameState.pasajeros > 0">
           <button class="game-button" (click)="sacrificarPasajero('escapar_encuentro')"

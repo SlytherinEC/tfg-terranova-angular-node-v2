@@ -256,12 +256,17 @@
     margin-bottom: 1rem;
   }
   
-  .passenger {
-    width: 25px;
-    height: 25px;
-    background-color: #FFD54F;
-    border-radius: 50%;
-    box-shadow: 0 0 5px rgba(255, 213, 79, 0.7);
+  .passenger-icon {
+    font-size: 1.5rem;
+    color: #FFD54F;
+    text-shadow: 0 0 5px rgba(255, 213, 79, 0.7);
+    filter: drop-shadow(0 0 3px rgba(26, 122, 122, 0.5));
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+      text-shadow: 0 0 8px rgba(255, 213, 79, 0.9);
+    }
   }
   
   .action-buttons {
