@@ -1,47 +1,60 @@
 <div class="stress-manager">
   <div class="stress-header">
-    <h3 class="section-title">ESTRES ({{estresActual}}/{{estresMaximo}})</h3>
+    <h3 class="section-title">ESTRES ({{currentStress}}/{{maxStress}})</h3>
     <div class="stress-bar">
-      <div class="stress-fill" [style.width.%]="(estresActual / estresMaximo) * 100"></div>
-      <span class="stress-value">{{estresActual}}/{{estresMaximo}}</span>
+      <div class="stress-fill" [style.width.%]="getStressBarWidth()"></div>
+      <span class="stress-value">{{currentStress}}/{{maxStress}}</span>
     </div>
   </div>
 
-  <div class="stress-actions" *ngIf="puedeUsarEstres">
-    <!-- Acciones de estrés -->
-    <ng-container *ngIf="!accionSeleccionada">
-      <button class="stress-button" [disabled]="!puedeModificarDados" (click)="seleccionarAccion('modificar')">
-        MODIFICAR DADO (+1)
-      </button>
-      <button class="stress-button" [disabled]="!puedeModificarDados" (click)="seleccionarAccion('retirar')">
-        VOLVER A TIRAR
-      </button>
-      <button class="stress-button" [disabled]="!puedeRepararTraje" (click)="seleccionarAccion('reparar')">
-        REPARAR TRAJE (+1)
-      </button>
-    </ng-container>
-
-    <!-- Selección de dado -->
-    <div class="dice-selection" *ngIf="accionSeleccionada === 'modificar' || accionSeleccionada === 'retirar'">
-      <p class="selection-help">Selecciona un dado:</p>
-      <div class="dice-list">
-        <div *ngFor="let dado of dados; let i = index" class="dice-item" [class.selected]="dadoSeleccionado === i"
-          (click)="seleccionarDado(i)">
-          {{dado}}
+  <div class="stress-actions" *ngIf="canUseStress">
+    <!-- Mostrar dados si hay datos de lanzamiento -->
+    <div class="dice-display" *ngIf="diceRollData">
+      <h4>Resultado de Dados:</h4>
+      <div class="dice-container">
+        <div class="dice-item" 
+             *ngFor="let dice of diceArray" 
+             [class.selected]="selectedDiceIndex === dice.index"
+             [class.modified]="dice.modified"
+             [class.rerolled]="dice.rerolled"
+             (click)="onSelectDice(dice.index)">
+          <div class="dice-value">{{dice.value}}</div>
+          <div class="dice-status">
+            <span *ngIf="dice.modified" class="status-badge modified">Modificado</span>
+            <span *ngIf="dice.rerolled" class="status-badge rerolled">Relanzado</span>
+          </div>
         </div>
       </div>
-      <div class="action-buttons">
-        <button class="stress-button confirm" [disabled]="dadoSeleccionado === null" (click)="confirmarAccion()">
-          CONFIRMAR
-        </button>
-        <button class="stress-button cancel" (click)="cancelarAccion()">
-          CANCELAR
-        </button>
+      <div class="dice-summary">
+        <p><strong>Suma:</strong> {{diceRollData.suma}} / {{diceRollData.objetivo}}</p>
+        <p class="result" [class.success]="diceRollData.exito" [class.failure]="!diceRollData.exito">
+          {{diceRollData.exito ? 'ÉXITO' : 'FALLO'}}
+        </p>
       </div>
+    </div>
+
+    <!-- Acciones de estrés disponibles -->
+    <div class="stress-actions-list">
+      <button *ngFor="let action of stressActions" 
+              class="stress-button"
+              [class.disabled]="!action.disponible"
+              [disabled]="!action.disponible || isLoading"
+              (click)="onUseStress(action)">
+        {{action.descripcion}} ({{action.costo}} estrés)
+      </button>
+    </div>
+
+    <!-- Botón para continuar sin usar estrés -->
+    <div class="continue-section">
+      <button class="continue-button" 
+              [disabled]="isLoading"
+              (click)="onContinue()">
+        Continuar sin usar estrés
+      </button>
     </div>
   </div>
 
-  <p class="stress-message" *ngIf="!puedeUsarEstres && estresActual >= estresMaximo">
+  <p class="stress-message" *ngIf="!canUseStress && currentStress >= maxStress">
     Has alcanzado el nivel máximo de estrés.
   </p>
 </div>
