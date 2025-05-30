@@ -1,0 +1,42 @@
+<div class="sacrifice-container">
+  <div class="sacrifice-header">
+    <h2 class="sacrifice-title">SACRIFICIO DE PASAJERO</h2>
+    <p class="sacrifice-action">{{ getSacrificeActionText() }}</p>
+  </div>
+
+  <div class="sacrifice-content">
+    <div class="left-panel">
+      <div class="dice-container">
+        <app-dice #diceRef [resultado]="diceResult || 1"></app-dice>
+      </div>
+
+      <button class="roll-button" [disabled]="isLoading || showAcceptButton" (click)="onRollDice()">
+        {{ diceResult === null ? 'TIRAR DADO' : 'TIRADO: ' + diceResult }}
+      </button>
+    </div>
+
+    <div class="right-panel">
+      <div class="info-section">
+        <h3>Reacción de Pasajeros</h3>
+        <p class="info-message">{{ diceResult === null ? infoMessage : getDiceResultDescription() }}</p>
+        
+        <div class="rules-info" *ngIf="diceResult === null">
+          <h4>Posibles Resultados:</h4>
+          <ul>
+            <li><strong>1:</strong> Te roban munición y huyen</li>
+            <li><strong>2-4:</strong> Gritan de miedo y atraen aliens</li>
+            <li><strong>5-6:</strong> Se convierten en héroes</li>
+          </ul>
+        </div>
+
+        <div *ngIf="diceResult !== null" [class]="'result-panel ' + getResultTypeClass()">
+          <p class="result-description">{{ resultMessage }}</p>
+        </div>
+      </div>
+
+      <button *ngIf="showAcceptButton" class="accept-button" [disabled]="isLoading" (click)="onAcceptResult()">
+        ACEPTAR RESULTADO
+      </button>
+    </div>
+  </div>
+</div> 
