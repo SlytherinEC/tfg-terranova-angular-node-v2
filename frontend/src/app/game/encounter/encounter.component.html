@@ -4,62 +4,228 @@
   </div>
 
   <div class="encounter-content">
-    <div class="alien-info">
-      <div class="alien-image" [ngClass]="'alien-' + encounter.alien">
-        <!-- Contenido del alien -->
-        <div class="alien-placeholder">{{encounter.alienData?.nombre || 'Alien'}}</div>
-      </div>
+    <!-- Panel izquierdo: Información del alien y estado -->
+    <div class="left-panel">
+      <div class="alien-info">
+        <!-- Imagen del alien -->
+        <div class="alien-image-container">
+          <img [src]="getAlienImage()" [alt]="encounter.alienData?.nombre || encounter.alien" class="alien-image">
+        </div>
 
-      <div class="alien-stats">
-        <h3 class="alien-name">{{encounter.alienData?.nombre || 'Alien'}}</h3>
-
-        <div class="stat-row">
-          <span class="stat-label">HP:</span>
-          <div class="alien-hp-bar">
-            <div class="hp-fill" [style.width.%]="(encounter.pg / encounter.alienData?.pg) * 100"></div>
-            <span>{{encounter.pg}} / {{encounter.alienData?.pg}}</span>
+        <h3 class="alien-name">{{ encounter.alienData?.nombre || encounter.alien }}</h3>
+        <div class="alien-stats">
+          <div class="stat-row">
+            <span class="stat-label">💚 Puntos de Golpe:</span>
+            <div class="health-bar">
+              <div class="health-fill" 
+                   [style.width.%]="(encounter.pg / (encounter.alienData?.pg || encounter.pg)) * 100">
+              </div>
+              <span class="health-text">{{ encounter.pg }}/{{ encounter.alienData?.pg || encounter.pg }}</span>
+            </div>
           </div>
-        </div>
-
-        <div class="stat-row">
-          <span class="stat-label">Daño:</span>
-          <span class="stat-value">{{encounter.alienData?.danio}}</span>
-        </div>
-
-        <div class="stat-row">
-          <span class="stat-label">Objetivo:</span>
-          <span class="stat-value">{{encounter.alienData?.objetivo}}+</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="combat-result" *ngIf="combatResult">
-      <div class="dice-result">
-        <app-dice *ngFor="let _ of diceArray" [resultado]="diceResult"></app-dice>
-      </div>
-      <div class="result-message">{{combatResult}}</div>
-    </div>
-
-    <div class="weapons-section">
-      <h3 class="section-title">SELECCIONA UN ARMA</h3>
-
-      <div class="weapons-grid">
-        <div class="weapon-card" *ngFor="let arma of weapons" [class.disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
-          (click)="onWeaponSelect(arma.nombre)">
-          <div class="weapon-name">{{arma.nombre}}</div>
-          <div class="weapon-stats">
-            <span class="weapon-stat">DMG: {{arma.danio}}</span>
-            <span class="weapon-stat">PRC: {{arma.precision}}</span>
-            <span class="weapon-stat">{{arma.municion}}/{{arma.municion_max}}</span>
+          <div class="stat-row">
+            <span class="stat-label">⚔️ Daño:</span>
+            <span class="stat-value">{{ encounter.alienData?.danio || '?' }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">🎯 Objetivo:</span>
+            <span class="stat-value">{{ encounter.alienData?.objetivo || '?' }}+</span>
           </div>
         </div>
       </div>
+
+      <!-- Estado del combate -->
+      <div class="combat-status" *ngIf="combatState">
+        <div class="phase-info">
+          <h4>{{ getPhaseTitle() }}</h4>
+          <p class="phase-description">{{ getPhaseDescription() }}</p>
+          <span class="turn-counter">Turno: {{ combatState.turno }}</span>
+        </div>
+      </div>
     </div>
 
-    <div class="combat-actions">
-      <button class="escape-button" [disabled]="isLoading || !canSacrifice" (click)="onEscape()">
-        SACRIFICAR PASAJERO PARA ESCAPAR
-      </button>
+    <!-- Panel derecho: Acciones y dados -->
+    <div class="right-panel">
+      <!-- Fase de preparación -->
+      <div class="action-section" *ngIf="combatPhase === 'preparacion'">
+        <h4 class="section-title">Preparación</h4>
+        <p class="section-description">Puedes usar ítems o sacrificar pasajeros antes del combate.</p>
+        
+        <div class="action-buttons">
+          <button class="action-btn continue-btn" 
+                  [disabled]="isLoading"
+                  (click)="onContinue()">
+            COMENZAR COMBATE
+          </button>
+        </div>
+      </div>
+
+      <!-- Fase de selección de arma -->
+      <div class="action-section" *ngIf="combatPhase === 'seleccion_arma'">
+        <h4 class="section-title">Selecciona tu Arma</h4>
+        <div class="weapons-grid">
+          <button *ngFor="let weapon of weapons" 
+                  class="weapon-btn"
+                  [class.disabled]="!isWeaponUsable(weapon)"
+                  [disabled]="!isWeaponUsable(weapon) || isLoading"
+                  (click)="onWeaponSelect(weapon.nombre)">
+            <div class="weapon-info">
+              <span class="weapon-name">{{ weapon.nombre }}</span>
+              <div class="weapon-stats">
+                <span>DMG: {{ weapon.danio }}</span>
+                <span>PRC: {{ weapon.precision }}</span>
+                <span>MUN: {{ getWeaponMunitionText(weapon) }}</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fase de lanzamiento -->
+      <div class="action-section" *ngIf="combatPhase === 'lanzamiento'">
+        <div class="selected-weapon" *ngIf="combatState?.arma_seleccionada">
+          <h4 class="section-title">{{ combatState?.arma_seleccionada?.nombre }}</h4>
+          <div class="weapon-details">
+            <p><strong>Daño:</strong> {{ combatState?.arma_seleccionada?.danio }}</p>
+            <p><strong>Precisión:</strong> {{ combatState?.arma_seleccionada?.precision }} dados</p>
+            <p><strong>Munición:</strong> {{ getWeaponMunitionTextForSelected() }}</p>
+          </div>
+        </div>
+
+        <!-- Sección de dados unificada -->
+        <div class="dice-section">
+          <h4 class="section-title">{{ showDiceResults ? 'Resultado del Lanzamiento' : 'Dados de Ataque' }}</h4>
+          <div class="dice-container-horizontal">
+            <div class="dice-item" 
+                 *ngFor="let dice of diceArray; let idx = index"
+                 [class.result]="showDiceResults"
+                 [class.selected]="selectedDiceIndex === idx && showDiceResults"
+                 (click)="showDiceResults ? onSelectDice(idx) : null">
+              <app-dice #diceRef [resultado]="1"></app-dice>
+            </div>
+          </div>
+          
+          <!-- Resumen de resultados -->
+          <div class="dice-summary" *ngIf="showDiceResults && diceRollData">
+            <p><strong>Suma:</strong> {{ diceRollData.suma }} / {{ diceRollData.objetivo }}</p>
+            <p class="result" [class.success]="diceRollData.exito" [class.failure]="!diceRollData.exito">
+              {{ diceRollData.exito ? '¡ÉXITO!' : 'FALLO' }}
+            </p>
+            <p *ngIf="diceRollData.exito && diceRollData.arma_usada" class="damage-info">
+              <strong>Daño causado:</strong> {{ diceRollData.arma_usada.danio }}
+            </p>
+          </div>
+        </div>
+        
+        <!-- Botones de acción -->
+        <div class="action-buttons">
+          <button class="action-btn roll-btn" 
+                  *ngIf="!showDiceResults"
+                  [disabled]="isLoading"
+                  (click)="onRollDice()">
+            {{ isLoading ? 'LANZANDO...' : 'LANZAR DADOS' }}
+          </button>
+
+          <button class="action-btn continue-btn" 
+                  *ngIf="showDiceResults"
+                  [disabled]="isLoading"
+                  (click)="onContinueFromDiceResults()">
+            CONTINUAR
+          </button>
+        </div>
+      </div>
+
+      <!-- Fase de uso de estrés -->
+      <div class="action-section" *ngIf="combatPhase === 'uso_estres'">
+        <h4 class="section-title">Usar Estrés ({{ estres }}/3)</h4>
+        
+        <!-- Opciones de estrés (solo si puede usar estrés) -->
+        <div *ngIf="canUseStress">
+          <div class="stress-actions">
+            <button class="action-btn stress-btn" 
+                    [disabled]="selectedDiceIndex === -1 || isLoading"
+                    (click)="onUseStress('alterar_resultado')">
+              ALTERAR RESULTADO (±1)
+            </button>
+            <button class="action-btn stress-btn" 
+                    [disabled]="selectedDiceIndex === -1 || isLoading"
+                    (click)="onUseStress('volver_a_tirar')">
+              VOLVER A TIRAR DADO
+            </button>
+            <button class="action-btn stress-btn" 
+                    [disabled]="isLoading"
+                    (click)="onUseStress('reparar_traje')">
+              REPARAR TRAJE (+1)
+            </button>
+          </div>
+          <p class="stress-hint" *ngIf="selectedDiceIndex === -1">
+            Selecciona un dado para las primeras dos opciones
+          </p>
+        </div>
+        
+        <!-- Mensaje cuando no puede usar más estrés -->
+        <div *ngIf="!canUseStress" class="max-stress-message">
+          <p>Has alcanzado el máximo nivel de estrés (3/3). No puedes usar más estrés.</p>
+        </div>
+        
+        <!-- Botón de continuar (siempre disponible) -->
+        <button class="action-btn continue-btn" 
+                [disabled]="isLoading"
+                (click)="onContinue()">
+          {{ canUseStress ? 'CONTINUAR SIN USAR ESTRÉS' : 'CONTINUAR' }}
+        </button>
+      </div>
+
+      <!-- Ítems disponibles -->
+      <div class="action-section" *ngIf="items.length > 0 && (combatPhase === 'preparacion' || combatPhase === 'resultado')">
+        <h4 class="section-title">Ítems</h4>
+        <div class="items-grid">
+          <button *ngFor="let item of items; let i = index" 
+                  class="item-btn"
+                  [disabled]="isLoading"
+                  (click)="onUseItem(i)">
+            <div class="item-info">
+              <span class="item-name">{{ item.nombre }}</span>
+              <span class="item-uses">{{ item.usos }} usos</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Acciones de sacrificio -->
+      <div class="action-section" *ngIf="pasajeros > 0">
+        <h4 class="section-title">Sacrificar Pasajero ({{ pasajeros }})</h4>
+        <div class="sacrifice-actions">
+          <button class="action-btn sacrifice-btn" 
+                  *ngIf="combatPhase === 'preparacion'"
+                  [disabled]="isLoading"
+                  (click)="onSacrificePassenger('escapar_encuentro')">
+            ESCAPAR DEL ENCUENTRO
+          </button>
+          <button class="action-btn sacrifice-btn" 
+                  *ngIf="combatPhase === 'resultado'"
+                  [disabled]="isLoading"
+                  (click)="onSacrificePassenger('evadir_ataque')">
+            EVADIR PRÓXIMO ATAQUE
+          </button>
+          <button class="action-btn sacrifice-btn" 
+                  [disabled]="isLoading"
+                  (click)="onSacrificePassenger('recuperar_oxigeno')">
+            RECUPERAR OXÍGENO (+3)
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje de resultado -->
+      <div class="result-message" *ngIf="combatResult">
+        <p [innerHTML]="combatResult"></p>
+      </div>
     </div>
+  </div>
+
+  <!-- Indicador de carga -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Procesando acción...</p>
   </div>
 </div>
