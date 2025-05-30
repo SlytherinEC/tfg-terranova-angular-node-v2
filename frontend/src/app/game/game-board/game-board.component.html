@@ -70,10 +70,11 @@
 
       <!-- Agregar el componente de gestión de estrés dentro del sidebar -->
       <div class="sidebar-section">
-        <app-stress-manager [estresActual]="gameState.capitan.estres" [estresMaximo]="10"
-          [dados]="gameState.ultimo_combate?.dados || []" [isInCombat]="!!gameState.encuentro_actual"
-          [traje]="gameState.capitan.traje" [trajeMaximo]="6" [isDisabled]="isLoading"
-          (usarEstres)="onUsarEstres($event)">
+        <app-stress-manager [currentStress]="gameState.capitan.estres" [maxStress]="3"
+          [diceRollData]="gameState.combate_actual?.datos_lanzamiento ?? null"
+          [canUseStress]="gameState.combate_actual?.puede_usar_estres || false"
+          [isLoading]="isLoading"
+          (stressAction)="onUsarEstres($event)">
         </app-stress-manager>
       </div>
 
@@ -153,12 +154,29 @@
     </div>
   </div>
 
+  <!-- Modal para resolver encuentros -->
+  <div class="modal-overlay" *ngIf="showEncounterResolver">
+    <div class="modal-content">
+      <app-encounter-resolver #encounterResolver [isLoading]="isLoading" (rollDice)="onRollEncounterDice()"
+        (acceptResult)="onAcceptEncounterResult()">
+      </app-encounter-resolver>
+    </div>
+  </div>
+
   <!-- Panel de combate -->
   <div class="modal-overlay" *ngIf="showEncounter">
-    <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
+    <app-encounter #encounterComponent [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
       [canSacrifice]="gameState.pasajeros > 0" [isLoading]="isLoading" [combatResult]="combatMessage"
-      [diceResult]="currentDiceResult" (weaponSelected)="resolverCombate($event)"
-      (escape)="sacrificarPasajero('escapar_encuentro')">
+      [diceResult]="currentDiceResult" [combatState]="gameState.combate_actual" [pasajeros]="gameState.pasajeros"
+      [estres]="gameState.capitan.estres" [items]="gameState.mochila || []"
+      (weaponSelected)="resolverCombate($event)" (escape)="sacrificarPasajero('escapar_encuentro')"
+      (selectWeaponInAdvancedCombat)="onSeleccionarArmaAvanzado($event)"
+      (rollDiceInAdvancedCombat)="onLanzarDadosAvanzado()"
+      (useStressInAdvancedCombat)="onUsarEstresAvanzado($event)"
+      (continueAdvancedCombat)="onContinuarCombateAvanzado()"
+      (useItemInAdvancedCombat)="onUsarItemAvanzado($event)"
+      (sacrificePassengerInAdvancedCombat)="onSacrificarPasajeroAvanzado($event)"
+      (advanceToStressPhase)="onAvanzarAUsoEstres()">
     </app-encounter>
   </div>
 
