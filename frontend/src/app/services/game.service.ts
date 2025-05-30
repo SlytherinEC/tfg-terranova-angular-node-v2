@@ -269,4 +269,190 @@ export class GameService {
       })
     );
   }
+
+  // Tirar dado para encuentro
+  tirarDadoEncuentro(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/encuentro-tirar-dado`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de encuentro:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver encuentro
+  resolverEncuentro(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/encuentro-resolver`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver encuentro:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // NUEVOS MÉTODOS PARA COMBATE AVANZADO
+
+  // Iniciar combate avanzado
+  iniciarCombateAvanzado(idPartida: number, tipoAlien: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/iniciar`,
+      { tipo_alien: tipoAlien },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Seleccionar arma en combate
+  seleccionarArmaEnCombate(idPartida: number, nombreArma: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/seleccionar-arma`,
+      { nombre_arma: nombreArma },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Lanzar dados en combate
+  lanzarDadosEnCombate(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/lanzar-dados`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Avanzar de fase lanzamiento a uso de estrés
+  avanzarAUsoEstres(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/avanzar-uso-estres`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Usar estrés en combate avanzado
+  usarEstresEnCombateAvanzado(idPartida: number, accion: string, parametros?: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/usar-estres`,
+      { accion, parametros },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Continuar combate
+  continuarCombateAvanzado(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/continuar`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Usar ítem en combate avanzado
+  usarItemEnCombateAvanzado(idPartida: number, indiceItem: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/usar-item`,
+      { indice_item: indiceItem },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Sacrificar pasajero en combate avanzado
+  sacrificarPasajeroEnCombateAvanzado(idPartida: number, accion: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/sacrificar-pasajero`,
+      { accion },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Obtener estado del combate
+  obtenerEstadoCombate(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/estado`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Finalizar combate
+  finalizarCombate(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/finalizar`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Obtener armas disponibles por dificultad
+  obtenerArmasDisponibles(dificultad?: string): Observable<any> {
+    const params = dificultad ? `?dificultad=${dificultad}` : '';
+    return this.http.get(`${this.apiUrl}/armas${params}`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Obtener información de alien
+  obtenerInfoAlien(tipoAlien: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/aliens/${tipoAlien}`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Obtener logros de combate
+  obtenerLogrosCombateAvanzado(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/logros-combate`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
 }
