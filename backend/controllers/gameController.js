@@ -700,8 +700,20 @@ const gameController = {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
 
-      // Usar DiceService para tirar el dado
-      const valorDado = DiceService.rollDie(6);
+      // Verificar si hay un encuentro forzado por sacrificio de pasajeros
+      let valorDado;
+      let encuentroForzado = false;
+
+      if (partida.proxima_habitacion_encuentro) {
+        // Forzar encuentro (valor 1 del dado)
+        valorDado = 1;
+        encuentroForzado = true;
+        // Limpiar la bandera
+        partida.proxima_habitacion_encuentro = false;
+      } else {
+        // Usar DiceService para tirar el dado normalmente
+        valorDado = DiceService.rollDie(6);
+      }
 
       // Guardar el resultado temporalmente
       partida.ultimo_dado_exploracion = valorDado;
@@ -714,7 +726,11 @@ const gameController = {
 
       switch (valorDado) {
         case 1:
-          mensaje = 'Habitación infestada: ¡Te encontraste con un alien!';
+          if (encuentroForzado) {
+            mensaje = 'Los gritos del pasajero han atraído a un alien: ¡Te encontraste con una criatura!';
+          } else {
+            mensaje = 'Habitación infestada: ¡Te encontraste con un alien!';
+          }
           tipo = 'encuentro';
           break;
         case 2:
@@ -744,7 +760,8 @@ const gameController = {
         resultado: valorDado,
         mensaje,
         tipo,
-        resultDetails
+        resultDetails,
+        encuentroForzado // Información adicional para el frontend
       });
     } catch (error) {
       console.error('Error al tirar dado de exploración:', error);
@@ -1525,6 +1542,206 @@ const gameController = {
     } catch (error) {
       console.error('Error al obtener logros de combate:', error);
       res.status(500).json({ mensaje: 'Error al obtener logros de combate', error: error.message });
+    }
+  },
+
+  // Método para sacrificio interactivo (primera fase: tirar dado)
+  sacrificioTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion } = req.body;
+
+      // Validar acción
+      if (!accion || !['escapar_encuentro', 'evadir_ataque', 'recuperar_oxigeno'].includes(accion)) {
+        return res.status(400).json({ mensaje: 'Acción no válida' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar si tienen pasajeros
+      if (partida.pasajeros <= 0) {
+        return res.status(400).json({ mensaje: 'No tienes pasajeros para sacrificar' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Guardar el resultado temporalmente junto con la acción
+      partida.ultimo_dado_sacrificio = valorDado;
+      partida.accion_sacrificio_pendiente = accion;
+      await Partida.updateEstado(id_partida, partida);
+
+      // Preparar mensaje según el valor del dado
+      let mensaje = '';
+      let tipo = '';
+
+      if (valorDado === 1) {
+        mensaje = 'Te roban munición y huyen - Pierdes 1 munición de cada arma y a este pasajero';
+        tipo = 'robo_municion';
+      } else if (valorDado >= 2 && valorDado <= 4) {
+        mensaje = 'Gritan de miedo y llaman la atención - Pierdes al pasajero y la próxima habitación tendrá un alien';
+        tipo = 'gritan_miedo';
+      } else { // valorDado >= 5
+        // Personalizar mensaje según la acción
+        switch (accion) {
+          case 'escapar_encuentro':
+            mensaje = 'Se convierte en héroe - Te ayuda a escapar del alien';
+            break;
+          case 'evadir_ataque':
+            mensaje = 'Se convierte en héroe - Evita que el alien te ataque este turno';
+            break;
+          case 'recuperar_oxigeno':
+            mensaje = 'Se convierte en héroe - Te entrega su oxígeno (+3 O2)';
+            break;
+        }
+        tipo = 'heroico';
+      }
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        mensaje,
+        tipo,
+        accion
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de sacrificio:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de sacrificio', error: error.message });
+    }
+  },
+
+  // Método para sacrificio interactivo (segunda fase: resolver resultado)
+  sacrificioResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar que hay un dado de sacrificio pendiente
+      if (!partida.ultimo_dado_sacrificio || !partida.accion_sacrificio_pendiente) {
+        return res.status(400).json({ mensaje: 'No hay sacrificio pendiente para resolver' });
+      }
+
+      const valorDado = partida.ultimo_dado_sacrificio;
+      const accion = partida.accion_sacrificio_pendiente;
+
+      // Aplicar resultado según el valor del dado
+      let resultado;
+
+      // Registrar sacrificio para logros
+      if (!partida.pasajeros_sacrificados) {
+        partida.pasajeros_sacrificados = 0;
+      }
+
+      if (valorDado === 1) {
+        // Te roban munición y huyen
+        let municionRobada = false;
+        partida.armas.forEach(arma => {
+          if (arma.nombre !== 'Palanca' && arma.municion > 0) {
+            arma.municion -= 1;
+            municionRobada = true;
+          }
+        });
+
+        partida.pasajeros -= 1;
+        const mensaje = municionRobada ?
+          'El pasajero te robó munición y huyó' :
+          'El pasajero intentó robarte munición pero no tenías, simplemente huyó';
+
+        resultado = {
+          exito: false,
+          mensaje,
+          reaccion: valorDado,
+          tipo: 'robo_municion'
+        };
+      } else if (valorDado >= 2 && valorDado <= 4) {
+        // Gritan de miedo y llaman la atención
+        partida.pasajeros -= 1;
+        partida.proxima_habitacion_encuentro = true;
+        
+        resultado = {
+          exito: false,
+          mensaje: 'El pasajero gritó de miedo y huyó, atrayendo la atención de los aliens',
+          reaccion: valorDado,
+          tipo: 'gritan_miedo'
+        };
+      } else { // valorDado >= 5
+        // Reacción heroica
+        partida.pasajeros -= 1;
+        partida.pasajeros_sacrificados += 1;
+
+        // Aplicar efecto según la acción solicitada
+        let mensaje = '';
+        switch (accion) {
+          case 'escapar_encuentro':
+            if (partida.encuentro_actual) {
+              partida.encuentro_actual = null;
+              if (partida.combate_actual) {
+                partida.combate_actual = null;
+              }
+              mensaje = 'El pasajero se sacrificó heroicamente, permitiéndote escapar del alien';
+            } else {
+              mensaje = 'El pasajero se sacrificó, pero no había ningún encuentro del que escapar';
+            }
+            break;
+
+          case 'evadir_ataque':
+            if (partida.encuentro_actual) {
+              mensaje = 'El pasajero se interpuso heroicamente, evitando que el alien te ataque en este turno';
+              partida.evadir_proximo_ataque = true;
+            } else {
+              mensaje = 'El pasajero se sacrificó, pero no había ningún ataque que evadir';
+            }
+            break;
+
+          case 'recuperar_oxigeno':
+            partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + 3);
+            mensaje = 'El pasajero te entregó heroicamente su oxígeno, recuperas 3 puntos de O2';
+            break;
+        }
+
+        resultado = {
+          exito: true,
+          mensaje,
+          reaccion: valorDado,
+          tipo: 'heroico'
+        };
+      }
+
+      // Limpiar dados temporales
+      partida.ultimo_dado_sacrificio = null;
+      partida.accion_sacrificio_pendiente = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      // Añadir la partida actualizada a la respuesta
+      resultado.partida = partida;
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver sacrificio:', error);
+      res.status(500).json({ mensaje: 'Error al resolver sacrificio', error: error.message });
     }
   }
 };

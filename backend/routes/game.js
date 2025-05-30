@@ -43,6 +43,10 @@ router.post('/partidas/:id_partida/revisitar-resolver', gameController.revisitar
 router.post('/partidas/:id_partida/encuentro-tirar-dado', gameController.encuentroTirarDado);
 router.post('/partidas/:id_partida/encuentro-resolver', gameController.encuentroResolver);
 
+// Rutas para sacrificio interactivo de pasajeros
+router.post('/partidas/:id_partida/sacrificio-tirar-dado', gameController.sacrificioTirarDado);
+router.post('/partidas/:id_partida/sacrificio-resolver', gameController.sacrificioResolver);
+
 // NUEVAS RUTAS PARA COMBATE AVANZADO
 router.post('/partidas/:id_partida/combate-avanzado/iniciar', gameController.iniciarCombateAvanzado);
 router.post('/partidas/:id_partida/combate-avanzado/seleccionar-arma', gameController.seleccionarArmaEnCombate);
