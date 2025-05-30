@@ -813,6 +813,75 @@
     z-index: 50;
   }
   
+  // Estilos para la reorganización horizontal de códigos y pasajeros
+  .codes-passengers-section {
+    .codes-passengers-container {
+      display: flex;
+      gap: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .codes-section,
+    .passengers-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      margin-bottom: 0.8rem;
+      color: #1A7A7A;
+      text-align: center;
+    }
+
+    .codes-grid,
+    .passengers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 0.6rem;
+      justify-items: center;
+      align-items: center;
+    }
+
+    .code-slot,
+    .passenger-slot {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .code-slot {
+      border: 2px solid #1A7A7A;
+      background-color: rgba(10, 25, 47, 0.5);
+      
+      &.filled {
+        background-color: #FFD54F;
+      }
+    }
+
+    .passenger-slot {
+      border: 2px solid rgba(26, 122, 122, 0.5);
+      background-color: rgba(10, 25, 47, 0.3);
+      
+      &.filled {
+        background-color: rgba(26, 122, 122, 0.2);
+        border-color: #1A7A7A;
+      }
+
+      .passenger-icon {
+        font-size: 1rem;
+        color: #FFD54F;
+        text-shadow: 0 0 3px rgba(255, 213, 79, 0.7);
+      }
+    }
+  }
+  
   @media screen and (max-width: 768px) {
     .game-header {
       flex-direction: column;
@@ -877,6 +946,28 @@
     .weapons-grid {
       grid-template-columns: 1fr;
     }
+
+    // Estilos responsivos para códigos y pasajeros
+    .codes-passengers-section {
+      .codes-passengers-container {
+        gap: 1rem;
+      }
+
+      .codes-grid,
+      .passengers-grid {
+        gap: 0.4rem;
+      }
+
+      .code-slot,
+      .passenger-slot {
+        width: 20px;
+        height: 20px;
+      }
+
+      .passenger-slot .passenger-icon {
+        font-size: 0.85rem;
+      }
+    }
   }
   
   @media screen and (max-width: 480px) {
@@ -922,5 +1013,33 @@
     .control-button {
       font-size: 0.6rem;
       padding: 0.5rem;
+    }
+
+    // Estilos extra pequeños para códigos y pasajeros
+    .codes-passengers-section {
+      .codes-passengers-container {
+        gap: 1rem;
+        flex-direction: column;
+      }
+
+      .section-title {
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .codes-grid,
+      .passengers-grid {
+        gap: 0.3rem;
+      }
+
+      .code-slot,
+      .passenger-slot {
+        width: 18px;
+        height: 18px;
+      }
+
+      .passenger-slot .passenger-icon {
+        font-size: 0.75rem;
+      }
     }
   }

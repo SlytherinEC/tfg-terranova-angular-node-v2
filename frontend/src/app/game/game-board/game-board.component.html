@@ -40,19 +40,31 @@
     </div>
 
     <div class="game-sidebar">
-      <div class="sidebar-section">
-        <h3 class="section-title">CÓDIGOS</h3>
-        <div class="codes-container">
-          <div class="code-slot" *ngFor="let _ of [].constructor(6); let i = index"
-            [class.filled]="i < (gameState.codigos_activacion || 0)"></div>
-        </div>
-      </div>
+      <!-- Contenedor horizontal para códigos y pasajeros -->
+      <div class="sidebar-section codes-passengers-section">
+        <div class="codes-passengers-container">
+          <!-- Sección de códigos -->
+          <div class="codes-section">
+            <h3 class="section-title">CÓDIGOS</h3>
+            <div class="codes-grid">
+              <div class="code-slot" *ngFor="let _ of [].constructor(6); let i = index"
+                [class.filled]="i < (gameState.codigos_activacion || 0)"></div>
+            </div>
+          </div>
 
-      <div class="sidebar-section">
-        <h3 class="section-title">PASAJEROS</h3>
-        <div class="passengers-container">
-          <div class="passenger-icon" *ngFor="let _ of [].constructor(gameState.pasajeros || 0)">👤</div>
+          <!-- Sección de pasajeros -->
+          <div class="passengers-section">
+            <h3 class="section-title">PASAJEROS</h3>
+            <div class="passengers-grid">
+              <div class="passenger-slot" *ngFor="let _ of [].constructor(6); let i = index"
+                [class.filled]="i < (gameState.pasajeros || 0)">
+                <span *ngIf="i < (gameState.pasajeros || 0)" class="passenger-icon">👤</span>
+              </div>
+            </div>
+          </div>
         </div>
+        
+        <!-- Botones de acción para pasajeros -->
         <div class="action-buttons" *ngIf="gameState.pasajeros > 0">
           <button class="game-button" (click)="sacrificarPasajero('escapar_encuentro')"
             [disabled]="!gameState.encuentro_actual">
