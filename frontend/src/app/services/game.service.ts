@@ -93,7 +93,8 @@ export class GameService {
       { headers: this.authService.obtenerHeadersAuth() }
     ).pipe(
       tap((response: any) => {
-        if (response.exito) {
+        // Actualizar estado tanto en éxito como en falla, ya que el pasajero se pierde de todos modos
+        if (response.partida) {
           this.gameStateSubject.next(response.partida);
         }
       })
@@ -294,6 +295,37 @@ export class GameService {
       }),
       catchError(error => {
         console.error('Error al resolver encuentro:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Tirar dado para sacrificio de pasajeros
+  tirarDadoSacrificio(idPartida: number, accion: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/sacrificio-tirar-dado`, 
+      { accion }, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de sacrificio:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver sacrificio de pasajeros
+  resolverSacrificio(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/sacrificio-resolver`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      tap((response: any) => {
+        // Actualizar estado tanto en éxito como en falla, ya que el pasajero se pierde de todos modos
+        if (response.partida) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver sacrificio:', error);
         return throwError(() => error);
       })
     );
