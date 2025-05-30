@@ -16,6 +16,7 @@ import { DiceService } from '../../services/dice.service';
 import { InfoModalComponent } from '../info-modal/info-modal.component';
 import { RevisitResolverComponent } from '../revisit-resolver/revisit-resolver.component';
 import { EncounterResolverComponent } from '../encounter-resolver/encounter-resolver.component';
+import { SacrificeResolverComponent } from '../sacrifice-resolver/sacrifice-resolver.component';
 
 @Component({
   selector: 'app-game-board',
@@ -30,7 +31,8 @@ import { EncounterResolverComponent } from '../encounter-resolver/encounter-reso
     ExplorableResolverComponent,
     InfoModalComponent,
     RevisitResolverComponent,
-    EncounterResolverComponent
+    EncounterResolverComponent,
+    SacrificeResolverComponent
   ],
   templateUrl: './game-board.component.html',
   styleUrl: './game-board.component.scss'
@@ -97,6 +99,14 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   encounterResultMessage: string = '';
   @ViewChild('encounterResolver') encounterResolver!: EncounterResolverComponent;
   @ViewChild('encounterComponent') encounterComponent!: EncounterComponent;
+
+  // Propiedades del sacrifice resolver
+  showSacrifice: boolean = false;
+  sacrificeAction: string = '';
+  sacrificeDiceResult: number | null = null;
+  sacrificeResultMessage: string = '';
+  sacrificeResultType: string = '';
+  @ViewChild('sacrificeResolver') sacrificeResolver!: SacrificeResolverComponent;
 
   // Propiedades de la armería
   showArmeria: boolean = false;
@@ -570,28 +580,19 @@ export class GameBoardComponent implements OnInit, OnDestroy {
 
   sacrificarPasajero(accion: string): void {
     if (!this.idPartida) return;
+    
+    // Verificar que hay pasajeros
+    if (this.gameState.pasajeros <= 0) {
+      this.mostrarModalInfo('Sin Pasajeros', 'No tienes pasajeros para sacrificar');
+      return;
+    }
 
-    this.isLoading = true;
-    this.gameService.sacrificarPasajero(this.idPartida, accion).subscribe({
-      next: (response) => {
-        if (response.mensaje) {
-          this.addLogMessage(response.mensaje);
-        }
-
-        // Actualizar el estado del juego
-        const state = this.gameService.getGameState();
-        if (state) {
-          this.gameState = state;
-        }
-
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error al sacrificar pasajero:', err);
-        this.mensaje = 'Error al sacrificar pasajero';
-        this.isLoading = false;
-      }
-    });
+    // Mostrar el sacrifice resolver
+    this.sacrificeAction = accion;
+    this.showSacrifice = true;
+    this.sacrificeDiceResult = null;
+    this.sacrificeResultMessage = '';
+    this.sacrificeResultType = '';
   }
 
   usarItem(indiceItem: number): void {
@@ -1125,6 +1126,78 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error al sacrificar pasajero en combate:', err);
         this.mostrarModalInfo('Error', 'Error al sacrificar pasajero');
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // Métodos para manejar el sacrifice resolver
+  onRollSacrificeDice(): void {
+    if (!this.idPartida || !this.sacrificeAction) return;
+
+    this.isLoading = true;
+    this.gameService.tirarDadoSacrificio(this.idPartida, this.sacrificeAction).subscribe({
+      next: (response) => {
+        if (response.exito) {
+          this.sacrificeDiceResult = response.resultado;
+          this.sacrificeResultMessage = response.mensaje;
+          this.sacrificeResultType = response.tipo;
+
+          // Configurar el resultado en el componente
+          if (this.sacrificeResolver) {
+            this.sacrificeResolver.setDiceResult(
+              response.resultado,
+              response.mensaje,
+              response.tipo
+            );
+          }
+        } else {
+          this.mostrarModalInfo('Error', response.mensaje || 'Error al tirar dado');
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al tirar dado de sacrificio:', err);
+        this.mostrarModalInfo('Error', 'Error al tirar el dado');
+        this.isLoading = false;
+      }
+    });
+  }
+
+  onAcceptSacrificeResult(): void {
+    if (!this.idPartida) return;
+
+    this.isLoading = true;
+    this.gameService.resolverSacrificio(this.idPartida).subscribe({
+      next: (response) => {
+        // Siempre mostrar el mensaje al usuario
+        if (response.mensaje) {
+          this.addLogMessage(response.mensaje);
+        }
+
+        // Actualizar el estado del juego (tanto en éxito como en falla)
+        const state = this.gameService.getGameState();
+        if (state) {
+          this.gameState = state;
+        }
+
+        // Si escapó del encuentro exitosamente, cerrar modal de combate
+        if (response.exito && this.sacrificeAction === 'escapar_encuentro' && response.tipo === 'heroico') {
+          this.showEncounter = false;
+        }
+
+        // Cerrar el modal de sacrificio
+        this.showSacrifice = false;
+        this.sacrificeAction = '';
+        this.sacrificeDiceResult = null;
+        this.sacrificeResultMessage = '';
+        this.sacrificeResultType = '';
+
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error al resolver sacrificio:', err);
+        this.mostrarModalInfo('Error', 'Error al resolver el sacrificio');
         this.isLoading = false;
       }
     });

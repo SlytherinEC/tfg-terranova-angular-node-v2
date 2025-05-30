@@ -175,6 +175,15 @@
     </div>
   </div>
 
+  <!-- Modal para sacrificio de pasajeros -->
+  <div class="modal-overlay" *ngIf="showSacrifice">
+    <div class="modal-content">
+      <app-sacrifice-resolver #sacrificeResolver [isLoading]="isLoading" [sacrificeAction]="sacrificeAction"
+        (rollDice)="onRollSacrificeDice()" (acceptResult)="onAcceptSacrificeResult()">
+      </app-sacrifice-resolver>
+    </div>
+  </div>
+
   <!-- Panel de combate -->
   <div class="modal-overlay" *ngIf="showEncounter">
     <app-encounter #encounterComponent [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
@@ -188,7 +197,8 @@
       (continueAdvancedCombat)="onContinuarCombateAvanzado()"
       (useItemInAdvancedCombat)="onUsarItemAvanzado($event)"
       (sacrificePassengerInAdvancedCombat)="onSacrificarPasajeroAvanzado($event)"
-      (advanceToStressPhase)="onAvanzarAUsoEstres()">
+      (advanceToStressPhase)="onAvanzarAUsoEstres()"
+      (sacrificePassengerInteractive)="sacrificarPasajero($event)">
     </app-encounter>
   </div>
 
