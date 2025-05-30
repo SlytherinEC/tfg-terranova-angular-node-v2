@@ -37,6 +37,8 @@ export class EncounterComponent implements OnChanges {
   @Output() useItemInAdvancedCombat = new EventEmitter<number>();
   @Output() sacrificePassengerInAdvancedCombat = new EventEmitter<string>();
   @Output() advanceToStressPhase = new EventEmitter<void>();
+  // Nuevo output para el sacrificio interactivo
+  @Output() sacrificePassengerInteractive = new EventEmitter<string>();
 
   selectedDiceIndex: number = -1;
   showDiceResults: boolean = false;
@@ -165,13 +167,9 @@ export class EncounterComponent implements OnChanges {
   onSacrificePassenger(action: string): void {
     if (this.pasajeros <= 0) return;
     
-    // Si hay combate avanzado activo, usar el sistema avanzado
-    if (this.combatState) {
-      this.sacrificePassengerInAdvancedCombat.emit(action);
-    } else {
-      // Sistema anterior
-      this.sacrificePassenger.emit(action);
-    }
+    // SIEMPRE usar el sistema interactivo de sacrifice resolver
+    // independientemente de si hay combate avanzado o no
+    this.sacrificePassengerInteractive.emit(action);
   }
 
   private isDiceModified(index: number): boolean {
