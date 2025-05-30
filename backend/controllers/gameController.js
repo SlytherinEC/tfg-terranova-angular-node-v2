@@ -66,14 +66,14 @@ const gameController = {
           partida.armas = partida.armas.filter(a => a.nombre !== 'Blaster');
           break;
         case 'DIFICIL':
-          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Laser y Blaster, Pasajeros: 4
+          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Pistola Laser y Blaster, Pasajeros: 4
           partida.capitan.traje = 3;
           partida.capitan.estres = 2;
           partida.armas = partida.armas.filter(a => a.nombre !== 'Pistola Laser' && a.nombre !== 'Blaster');
           partida.pasajeros = 4;
           break;
         case 'LOCURA':
-          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Plasma, Pasajeros: 2
+          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Pistola de Plasma, Pasajeros: 2
           partida.capitan.traje = 2;
           partida.capitan.estres = 3;
           partida.armas = partida.armas.filter(a => a.nombre === 'Palanca' || a.nombre === 'Pistola de Plasma');
@@ -1077,31 +1077,490 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver revisita', error: error.message });
     }
   },
+
+  // Método para tirar dado de encuentro (primera fase: determinar alien)
+  encuentroTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Obtener alien según el valor del dado
+      const alienData = obtenerAlienPorDado(valorDado);
+
+      // Guardar el resultado temporalmente
+      partida.ultimo_dado_encuentro = valorDado;
+      partida.alien_pendiente = alienData;
+      await Partida.updateEstado(id_partida, partida);
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        alien: alienData,
+        mensaje: `¡Te enfrentas a un ${alienData.nombre}!`
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de encuentro:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de encuentro', error: error.message });
+    }
+  },
+
+  // Método para resolver encuentro (segunda fase: iniciar combate)
+  encuentroResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Obtener alien pendiente
+      const alienData = partida.alien_pendiente;
+
+      if (!alienData) {
+        return res.status(400).json({ mensaje: 'Debes tirar el dado primero' });
+      }
+
+      // Iniciar combate avanzado directamente
+      const resultadoCombate = GameService.iniciarCombateAvanzado(partida, alienData.tipo);
+
+      if (!resultadoCombate.exito) {
+        return res.status(400).json({ mensaje: resultadoCombate.mensaje });
+      }
+
+      // Limpiar datos temporales
+      partida.ultimo_dado_encuentro = null;
+      partida.alien_pendiente = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      const resultado = {
+        exito: true,
+        resultado: {
+          tipo: 'encuentro',
+          mensaje: `¡El combate contra el ${alienData.nombre} ha comenzado!`,
+          encuentro: {
+            alien: alienData.tipo,
+            pg: alienData.pg,
+            alienData: alienData
+          }
+        },
+        combate_estado: resultadoCombate.combate_estado,
+        partida
+      };
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver encuentro:', error);
+      res.status(500).json({ mensaje: 'Error al resolver encuentro', error: error.message });
+    }
+  },
+
+  // NUEVOS ENDPOINTS PARA COMBATE AVANZADO
+
+  // Iniciar combate avanzado
+  iniciarCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { tipo_alien } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.iniciarCombateAvanzado(partida, tipo_alien);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al iniciar combate avanzado:', error);
+      res.status(500).json({ mensaje: 'Error al iniciar combate avanzado', error: error.message });
+    }
+  },
+
+  // Seleccionar arma en combate
+  seleccionarArmaEnCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { nombre_arma } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.seleccionarArmaEnCombate(partida, nombre_arma);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al seleccionar arma en combate:', error);
+      res.status(500).json({ mensaje: 'Error al seleccionar arma en combate', error: error.message });
+    }
+  },
+
+  // Lanzar dados en combate
+  lanzarDadosEnCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.lanzarDadosEnCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al lanzar dados en combate:', error);
+      res.status(500).json({ mensaje: 'Error al lanzar dados en combate', error: error.message });
+    }
+  },
+
+  // Avanzar de fase lanzamiento a uso de estrés
+  avanzarAUsoEstres: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar que esté en fase lanzamiento con dados ya lanzados
+      if (!partida.combate_actual || partida.combate_actual.fase !== 'lanzamiento' || !partida.combate_actual.datos_lanzamiento) {
+        return res.status(400).json({ mensaje: 'No se puede avanzar a uso de estrés desde esta fase' });
+      }
+
+      // Si el estrés ya está al máximo, saltar directamente al resultado
+      if (partida.capitan.estres >= 3) {
+        partida.combate_actual.fase = 'resultado';
+        partida.combate_actual.acciones_disponibles = GameService.generarAccionesDisponibles(partida, 'resultado');
+        
+        await Partida.updateEstado(id_partida, partida);
+        
+        // Procesar directamente el resultado del combate
+        const resultado = GameService.continuarCombate(partida);
+        
+        if (resultado.exito) {
+          await Partida.updateEstado(id_partida, partida);
+        }
+        
+        return res.status(200).json(resultado);
+      } else {
+        // Ir a fase de uso de estrés
+        partida.combate_actual.fase = 'uso_estres';
+        partida.combate_actual.acciones_disponibles = GameService.generarAccionesDisponibles(partida, 'uso_estres');
+
+        await Partida.updateEstado(id_partida, partida);
+
+        res.status(200).json({
+          exito: true,
+          mensaje: 'Avanzando a fase de uso de estrés',
+          combate_estado: partida.combate_actual,
+          partida
+        });
+      }
+    } catch (error) {
+      console.error('Error al avanzar a uso de estrés:', error);
+      res.status(500).json({ mensaje: 'Error al avanzar a uso de estrés', error: error.message });
+    }
+  },
+
+  // Usar estrés en combate
+  usarEstresEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion, parametros } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.usarEstresEnCombate(partida, accion, parametros);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al usar estrés en combate:', error);
+      res.status(500).json({ mensaje: 'Error al usar estrés en combate', error: error.message });
+    }
+  },
+
+  // Continuar combate
+  continuarCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.continuarCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al continuar combate:', error);
+      res.status(500).json({ mensaje: 'Error al continuar combate', error: error.message });
+    }
+  },
+
+  // Usar ítem en combate avanzado
+  usarItemEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { indice_item } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.usarItemEnCombateAvanzado(partida, indice_item);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al usar ítem en combate:', error);
+      res.status(500).json({ mensaje: 'Error al usar ítem en combate', error: error.message });
+    }
+  },
+
+  // Sacrificar pasajero en combate avanzado
+  sacrificarPasajeroEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.sacrificarPasajeroEnCombateAvanzado(partida, accion);
+
+      if (resultado.exito || resultado.partida) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al sacrificar pasajero en combate:', error);
+      res.status(500).json({ mensaje: 'Error al sacrificar pasajero en combate', error: error.message });
+    }
+  },
+
+  // Obtener estado del combate
+  obtenerEstadoCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.obtenerEstadoCombate(partida);
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al obtener estado del combate:', error);
+      res.status(500).json({ mensaje: 'Error al obtener estado del combate', error: error.message });
+    }
+  },
+
+  // Finalizar combate
+  finalizarCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.finalizarCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al finalizar combate:', error);
+      res.status(500).json({ mensaje: 'Error al finalizar combate', error: error.message });
+    }
+  },
+
+  // Obtener información de armas por dificultad
+  obtenerArmasDisponibles: async (req, res) => {
+    try {
+      const { dificultad } = req.query;
+      const armas = GameService.obtenerArmasDisponibles(dificultad || 'NORMAL');
+      res.status(200).json({ armas });
+    } catch (error) {
+      console.error('Error al obtener armas disponibles:', error);
+      res.status(500).json({ mensaje: 'Error al obtener armas disponibles', error: error.message });
+    }
+  },
+
+  // Obtener información de alien
+  obtenerInfoAlien: async (req, res) => {
+    try {
+      const { tipo_alien } = req.params;
+      const alien = GameService.obtenerInfoAlien(tipo_alien);
+      
+      if (!alien) {
+        return res.status(404).json({ mensaje: 'Tipo de alien no encontrado' });
+      }
+
+      res.status(200).json({ alien });
+    } catch (error) {
+      console.error('Error al obtener información del alien:', error);
+      res.status(500).json({ mensaje: 'Error al obtener información del alien', error: error.message });
+    }
+  },
+
+  // Obtener logros de combate
+  obtenerLogrosCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const logros = GameService.obtenerLogrosCombate(partida);
+      res.status(200).json({ logros });
+    } catch (error) {
+      console.error('Error al obtener logros de combate:', error);
+      res.status(500).json({ mensaje: 'Error al obtener logros de combate', error: error.message });
+    }
+  }
 };
 
-// Helper function
-function obtenerAlienAleatorio() {
+// Helper function - Tabla de encuentros según 1d6
+function obtenerAlienPorDado(valorDado) {
   const aliens = {
-    arana: { tipo: 'arana', nombre: 'Araña', danio: 1, objetivo: 3, pg: 1 },
-    sabueso: { tipo: 'sabueso', nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 2 },
-    rastreador: { tipo: 'rastreador', nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 4 },
-    reina: { tipo: 'reina', nombre: 'Reina', danio: 3, objetivo: 8, pg: 8 }
+    arana: { tipo: 'arana', nombre: 'Araña', danio: 1, objetivo: 3, pg: 2, sacrificio: 1 },
+    sabueso: { tipo: 'sabueso', nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 4, sacrificio: 1 },
+    rastreador: { tipo: 'rastreador', nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 5, sacrificio: 2 },
+    reina: { tipo: 'reina', nombre: 'Reina', danio: 3, objetivo: 8, pg: 8, sacrificio: 3 }
   };
 
-  const rand = Math.random();
+  // Tabla de encuentros según 1d6:
+  // 1: Araña
+  // 2-3: Sabueso  
+  // 4-5: Rastreador
+  // 6: Reina
   let tipoAlien;
-
-  if (rand < 0.4) {
+  if (valorDado === 1) {
     tipoAlien = 'arana';
-  } else if (rand < 0.7) {
+  } else if (valorDado >= 2 && valorDado <= 3) {
     tipoAlien = 'sabueso';
-  } else if (rand < 0.9) {
+  } else if (valorDado >= 4 && valorDado <= 5) {
     tipoAlien = 'rastreador';
-  } else {
+  } else { // valorDado === 6
     tipoAlien = 'reina';
   }
 
   return aliens[tipoAlien];
+}
+
+// Función de compatibilidad para código existente
+function obtenerAlienAleatorio() {
+  const valorDado = Math.floor(Math.random() * 6) + 1;
+  return obtenerAlienPorDado(valorDado);
 }
 
 // Esta función auxiliar debe estar fuera del objeto gameController,
