@@ -29,12 +29,43 @@
 
   <div class="game-content">
     <div class="game-board">
-      <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
-      <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
-        [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
-        [adyacencias]="gameState.adyacencias" (cellClick)="onCellClick($event)" (invalidMove)="onInvalidMove($event)"></app-hex-map>
+      <!-- Mostrar mapa hexagonal cuando NO hay combate activo -->
+      <app-hex-map *ngIf="!gameState.encuentro_actual && gameState.mapa && gameState.mapa.length > 0" 
+        [mapa]="gameState.mapa"
+        [posicionActual]="gameState.posicion_actual" 
+        [codigosActivacion]="gameState.codigos_activacion"
+        [adyacencias]="gameState.adyacencias" 
+        (cellClick)="onCellClick($event)" 
+        (invalidMove)="onInvalidMove($event)">
+      </app-hex-map>
 
-      <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
+      <!-- Mostrar componente de combate cuando HAY combate activo Y NO hay encounter resolver -->
+      <app-encounter *ngIf="gameState.encuentro_actual && !showEncounterResolver" 
+        #encounterComponent 
+        [encounter]="gameState.encuentro_actual" 
+        [weapons]="gameState.armas || []"
+        [canSacrifice]="gameState.pasajeros > 0" 
+        [isLoading]="isLoading" 
+        [combatResult]="combatMessage"
+        [diceResult]="currentDiceResult" 
+        [combatState]="gameState.combate_actual" 
+        [pasajeros]="gameState.pasajeros"
+        [estres]="gameState.capitan.estres" 
+        [items]="gameState.mochila || []"
+        (weaponSelected)="resolverCombate($event)" 
+        (escape)="sacrificarPasajero('escapar_encuentro')"
+        (selectWeaponInAdvancedCombat)="onSeleccionarArmaAvanzado($event)"
+        (rollDiceInAdvancedCombat)="onLanzarDadosAvanzado()"
+        (useStressInAdvancedCombat)="onUsarEstresAvanzado($event)"
+        (continueAdvancedCombat)="onContinuarCombateAvanzado()"
+        (useItemInAdvancedCombat)="onUsarItemAvanzado($event)"
+        (sacrificePassengerInAdvancedCombat)="onSacrificarPasajeroAvanzado($event)"
+        (advanceToStressPhase)="onAvanzarAUsoEstres()"
+        (sacrificePassengerInteractive)="sacrificarPasajero($event)">
+      </app-encounter>
+
+      <!-- Mensaje cuando no hay mapa cargado -->
+      <div *ngIf="!gameState.encuentro_actual && (!gameState.mapa || gameState.mapa.length === 0)" class="empty-map-message">
         Cargando mapa...
       </div>
     </div>
@@ -67,14 +98,15 @@
         <!-- Botones de acción para pasajeros -->
         <div class="action-buttons" *ngIf="gameState.pasajeros > 0">
           <button class="game-button" (click)="sacrificarPasajero('escapar_encuentro')"
-            [disabled]="!gameState.encuentro_actual">
+            [disabled]="isLoading">
             Sacrificar para escapar
           </button>
           <button class="game-button" (click)="sacrificarPasajero('evadir_ataque')"
-            [disabled]="!gameState.encuentro_actual">
+            [disabled]="isLoading">
             Sacrificar para evadir ataque
           </button>
-          <button class="game-button" (click)="sacrificarPasajero('recuperar_oxigeno')">
+          <button class="game-button" (click)="sacrificarPasajero('recuperar_oxigeno')"
+            [disabled]="isLoading">
             Sacrificar para recuperar O2
           </button>
         </div>
@@ -106,7 +138,7 @@
             </div>
             <button class="use-weapon" *ngIf="gameState.encuentro_actual"
               [disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
-              (click)="resolverCombate(arma.nombre)">
+              (click)="seleccionarArmaEnCombate(arma.nombre)">
               USAR
             </button>
           </div>
@@ -182,24 +214,6 @@
         (rollDice)="onRollSacrificeDice()" (acceptResult)="onAcceptSacrificeResult()">
       </app-sacrifice-resolver>
     </div>
-  </div>
-
-  <!-- Panel de combate -->
-  <div class="modal-overlay" *ngIf="showEncounter">
-    <app-encounter #encounterComponent [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
-      [canSacrifice]="gameState.pasajeros > 0" [isLoading]="isLoading" [combatResult]="combatMessage"
-      [diceResult]="currentDiceResult" [combatState]="gameState.combate_actual" [pasajeros]="gameState.pasajeros"
-      [estres]="gameState.capitan.estres" [items]="gameState.mochila || []"
-      (weaponSelected)="resolverCombate($event)" (escape)="sacrificarPasajero('escapar_encuentro')"
-      (selectWeaponInAdvancedCombat)="onSeleccionarArmaAvanzado($event)"
-      (rollDiceInAdvancedCombat)="onLanzarDadosAvanzado()"
-      (useStressInAdvancedCombat)="onUsarEstresAvanzado($event)"
-      (continueAdvancedCombat)="onContinuarCombateAvanzado()"
-      (useItemInAdvancedCombat)="onUsarItemAvanzado($event)"
-      (sacrificePassengerInAdvancedCombat)="onSacrificarPasajeroAvanzado($event)"
-      (advanceToStressPhase)="onAvanzarAUsoEstres()"
-      (sacrificePassengerInteractive)="sacrificarPasajero($event)">
-    </app-encounter>
   </div>
 
   <!-- Panel de evento -->

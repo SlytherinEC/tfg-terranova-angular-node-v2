@@ -68,7 +68,6 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   mensaje: string | null = null;
   logMessages: string[] = [];
   isLoading: boolean = false;
-  showEncounter: boolean = false;
   showEvent: boolean = false;
   activeEvent: any = null;
   combatMessage: string | null = null;
@@ -210,8 +209,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       this.mensaje = `¡${resultado}! ${this.getFinalMessage()}`;
     }
 
-    // Comprobar si hay un encuentro activo
-    this.showEncounter = !!this.gameState.encuentro_actual;
+    // Ya no necesitamos manejar showEncounter porque ahora se muestra condicionalmente en el template
   }
 
   getFinalMessage(): string {
@@ -517,9 +515,9 @@ export class GameBoardComponent implements OnInit, OnDestroy {
           }
 
           if (response.victoria) {
-            // Timeout para mostrar el resultado antes de cerrar el modal
+            // El combate terminó, el encuentro se cerrará automáticamente cuando se actualice gameState.encuentro_actual
+            // No necesitamos manejar showEncounter manualmente
             setTimeout(() => {
-              this.showEncounter = false;
               this.combatMessage = null;
             }, 2000);
           }
@@ -858,9 +856,8 @@ export class GameBoardComponent implements OnInit, OnDestroy {
             this.gameState = state;
           }
 
-          // Cerrar el modal de encounter resolver y mostrar el modal de combate
+          // Cerrar el modal de encounter resolver
           this.showEncounterResolver = false;
-          this.showEncounter = true;
 
           // Guardar estado automáticamente
           this.gameService.autoSaveGameState();
@@ -1053,12 +1050,8 @@ export class GameBoardComponent implements OnInit, OnDestroy {
             this.gameState = state;
           }
 
-          // Si la partida terminó o el combate finalizó, cerrar el modal
-          if (response.victoria || response.fin || !this.gameState.combate_actual) {
-            setTimeout(() => {
-              this.showEncounter = false;
-            }, response.victoria ? 2000 : 500); // Esperar más tiempo si es victoria
-          }
+          // Si la partida terminó o el combate finalizó, no necesitamos hacer nada especial
+          // ya que el template mostrará automáticamente el mapa cuando gameState.encuentro_actual sea null
         } else {
           this.mostrarModalInfo('Error', response.mensaje || 'Error al continuar combate');
         }
@@ -1114,10 +1107,8 @@ export class GameBoardComponent implements OnInit, OnDestroy {
             this.gameState = state;
           }
 
-          // Si escapó del encuentro, cerrar el modal
-          if (accion === 'escapar_encuentro' && response.exito) {
-            this.showEncounter = false;
-          }
+          // Si escapó del encuentro exitosamente, no necesitamos hacer nada especial
+          // ya que el template mostrará automáticamente el mapa cuando gameState.encuentro_actual sea null
         } else {
           this.mostrarModalInfo('Error', response.mensaje || 'Error al sacrificar pasajero');
         }
@@ -1134,7 +1125,7 @@ export class GameBoardComponent implements OnInit, OnDestroy {
   // Métodos para manejar el sacrifice resolver
   onRollSacrificeDice(): void {
     if (!this.idPartida || !this.sacrificeAction) return;
-
+    
     this.isLoading = true;
     this.gameService.tirarDadoSacrificio(this.idPartida, this.sacrificeAction).subscribe({
       next: (response) => {
@@ -1170,26 +1161,28 @@ export class GameBoardComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.gameService.resolverSacrificio(this.idPartida).subscribe({
       next: (response) => {
-        // Siempre mostrar el mensaje al usuario
-        if (response.mensaje) {
+        // Tanto éxito como fallo son respuestas válidas del sacrificio
+        if (response.exito !== undefined && response.mensaje) {
           this.addLogMessage(response.mensaje);
+
+          // Actualizar el estado del juego CON LA PARTIDA DEL BACKEND
+          if (response.partida) {
+            this.gameState = response.partida;
+            this.gameService.updateGameState(response.partida);
+          }
+
+          // Cerrar el modal de sacrifice resolver
+          this.showSacrifice = false;
+
+          // Guardar estado automáticamente
+          this.gameService.autoSaveGameState();
+        } else {
+          this.mostrarModalInfo('Error', response.mensaje || 'Error al resolver sacrificio');
         }
 
-        // Actualizar el estado del juego (tanto en éxito como en falla)
-        const state = this.gameService.getGameState();
-        if (state) {
-          this.gameState = state;
-        }
-
-        // Si escapó del encuentro exitosamente, cerrar modal de combate
-        if (response.exito && this.sacrificeAction === 'escapar_encuentro' && response.tipo === 'heroico') {
-          this.showEncounter = false;
-        }
-
-        // Cerrar el modal de sacrificio
-        this.showSacrifice = false;
-        this.sacrificeAction = '';
+        // Limpiar datos del sacrifice resolver
         this.sacrificeDiceResult = null;
+        this.sacrificeAction = '';
         this.sacrificeResultMessage = '';
         this.sacrificeResultType = '';
 
@@ -1197,9 +1190,30 @@ export class GameBoardComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error al resolver sacrificio:', err);
-        this.mostrarModalInfo('Error', 'Error al resolver el sacrificio');
+        
+        // Mostrar mensaje específico del backend si está disponible
+        let mensaje = 'Error durante el sacrificio';
+        if (err.error && err.error.mensaje) {
+          mensaje = err.error.mensaje;
+          
+          // Si hay información de debug, mostrarla en consola
+          if (err.error.debug) {
+            console.error('Debug info:', err.error.debug);
+          }
+        }
+        
+        this.mostrarModalInfo('Error', mensaje);
         this.isLoading = false;
       }
     });
+  }
+
+  /**
+   * Selecciona un arma en el encounter component (desde el sidebar)
+   */
+  seleccionarArmaEnCombate(nombreArma: string): void {
+    if (this.encounterComponent) {
+      this.encounterComponent.onWeaponSelect(nombreArma);
+    }
   }
 }
