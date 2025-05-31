@@ -1,0 +1,121 @@
+<div class="ranking-container">
+  <div class="ranking-content">
+    <!-- Header con información del usuario y menú hamburguesa -->
+    <div class="header">
+      <h1 class="ranking-title">RANKING DE LOGROS</h1>
+      
+      <div class="user-info">
+        <div class="user-profile">
+          <img [src]="'../../assets/images/users/' + imagenPerfil" alt="Perfil" class="profile-image" 
+               onerror="this.src='../../assets/images/users/default_user.png'">
+          <span class="user-name">{{ nombreUsuario }}</span>
+        </div>
+        
+        <!-- Botón para menú móvil -->
+        <div class="menu-toggle" (click)="toggleMenu()">
+          <span class="menu-text">MENU</span>
+          <div class="hamburger" [class.open]="menuAbierto">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de navegación flotante -->
+    <div class="navbar-container" [class.show-navbar]="menuAbierto">
+      <nav class="navbar">
+        <button class="pixel-button nav-button" (click)="navegarA('/dashboard')">Dashboard</button>
+        <button class="pixel-button nav-button" (click)="navegarA('/perfil')">Perfil</button>
+        <button class="pixel-button nav-button" (click)="navegarA('/game')">Jugar</button>
+        <button class="pixel-button nav-button" (click)="actualizarRanking()">Actualizar</button>
+      </nav>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main-content">
+      <!-- Estadísticas del ranking -->
+      <div class="ranking-stats">
+        <div class="stat-item">
+          <span class="stat-label">Total Usuarios:</span>
+          <span class="stat-value">{{ totalUsuarios }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Última actualización:</span>
+          <span class="stat-value">{{ fechaActualizacion }}</span>
+        </div>
+      </div>
+
+      <!-- Mensaje de error -->
+      <div *ngIf="mensajeError" class="error-message">
+        {{ mensajeError }}
+      </div>
+
+      <!-- Indicador de carga -->
+      <div *ngIf="cargando" class="loading-message">
+        Cargando ranking...
+      </div>
+
+      <!-- Tabla de ranking -->
+      <div *ngIf="!cargando && !mensajeError" class="ranking-table-container">
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th>Posición</th>
+              <th>Usuario</th>
+              <th>Logros</th>
+              <th>Partidas</th>
+              <th>Victorias</th>
+              <th>% Victoria</th>
+              <th>Mejor Rango</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let usuario of ranking; trackBy: trackByUserId" 
+                [class.current-user]="esUsuarioActual(usuario.id_usuario)"
+                [class]="obtenerClasePosicion(usuario.posicion)">
+              <td class="position-cell">
+                <span class="position-number">{{ usuario.posicion }}</span>
+                <span class="medal">{{ obtenerMedalla(usuario.posicion) }}</span>
+              </td>
+              <td class="user-cell">
+                <img [src]="'../../assets/images/users/' + usuario.imagen_perfil" 
+                     alt="Perfil de {{ usuario.nombre }}" 
+                     class="user-avatar"
+                     onerror="this.src='../../assets/images/users/default_user.png'">
+                <div class="user-details">
+                  <span class="user-name">{{ usuario.nombre }}</span>
+                  <span class="user-email" *ngIf="!esUsuarioActual(usuario.id_usuario)">{{ usuario.email }}</span>
+                  <span class="current-user-label" *ngIf="esUsuarioActual(usuario.id_usuario)">TÚ</span>
+                </div>
+              </td>
+              <td class="achievements-cell">
+                <span class="achievements-count">{{ usuario.total_logros }}</span>
+                <span class="achievements-icon">🏆</span>
+              </td>
+              <td class="games-cell">{{ usuario.partidas_jugadas }}</td>
+              <td class="wins-cell">{{ usuario.partidas_ganadas }}</td>
+              <td class="percentage-cell">
+                <div class="percentage-bar">
+                  <div class="percentage-fill" [style.width.%]="usuario.porcentaje_victoria"></div>
+                  <span class="percentage-text">{{ usuario.porcentaje_victoria }}%</span>
+                </div>
+              </td>
+              <td class="rank-cell">
+                <span class="rank-badge" [class]="obtenerClaseRango(usuario.mejor_rango)">
+                  {{ usuario.mejor_rango }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Mensaje si no hay usuarios -->
+        <div *ngIf="ranking.length === 0" class="no-data-message">
+          <p>No hay usuarios registrados en el sistema.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
