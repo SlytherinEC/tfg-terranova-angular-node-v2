@@ -9,6 +9,7 @@ import { adminGuard } from './guards/admin.guard';
 import { NoAutorizadoComponent } from './no-autorizado/no-autorizado.component';
 import { PerfilComponent } from './perfil/perfil.component';
 import { ListaUsuariosComponent } from './lista-usuarios/lista-usuarios.component';
+import { RankingComponent } from './ranking/ranking.component';
 import { GAME_ROUTES } from './game/game.routes';
 
 export const routes: Routes = [
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'login', canActivate: [publicGuard], component: LoginComponent },
   { path: 'dashboard', canActivate: [authGuard], component: DashboardComponent },
   { path: 'admin', canActivate: [adminGuard], component: ListaUsuariosComponent },
+  { path: 'ranking', canActivate: [authGuard], component: RankingComponent },
   { path: 'no-autorizado', canActivate: [authGuard], component: NoAutorizadoComponent },
   { path: 'perfil', canActivate: [authGuard], component: PerfilComponent },
   { path: 'game', children: GAME_ROUTES },
