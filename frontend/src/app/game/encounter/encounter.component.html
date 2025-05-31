@@ -62,7 +62,8 @@
 
       <!-- Fase de selección de arma -->
       <div class="action-section" *ngIf="combatPhase === 'seleccion_arma'">
-        <h4 class="section-title">Selecciona tu Arma</h4>
+        <h4 class="section-title">Armas Disponibles</h4>
+        <p class="section-description">Selecciona un arma desde el panel lateral o haz clic aquí.</p>
         <div class="weapons-grid">
           <button *ngFor="let weapon of weapons" 
                   class="weapon-btn"
@@ -174,46 +175,6 @@
                 (click)="onContinue()">
           {{ canUseStress ? 'CONTINUAR SIN USAR ESTRÉS' : 'CONTINUAR' }}
         </button>
-      </div>
-
-      <!-- Ítems disponibles -->
-      <div class="action-section" *ngIf="items.length > 0 && (combatPhase === 'preparacion' || combatPhase === 'resultado')">
-        <h4 class="section-title">Ítems</h4>
-        <div class="items-grid">
-          <button *ngFor="let item of items; let i = index" 
-                  class="item-btn"
-                  [disabled]="isLoading"
-                  (click)="onUseItem(i)">
-            <div class="item-info">
-              <span class="item-name">{{ item.nombre }}</span>
-              <span class="item-uses">{{ item.usos }} usos</span>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Acciones de sacrificio -->
-      <div class="action-section" *ngIf="pasajeros > 0">
-        <h4 class="section-title">Sacrificar Pasajero ({{ pasajeros }})</h4>
-        <div class="sacrifice-actions">
-          <button class="action-btn sacrifice-btn" 
-                  *ngIf="combatPhase === 'preparacion'"
-                  [disabled]="isLoading"
-                  (click)="onSacrificePassenger('escapar_encuentro')">
-            ESCAPAR DEL ENCUENTRO
-          </button>
-          <button class="action-btn sacrifice-btn" 
-                  *ngIf="combatPhase === 'resultado'"
-                  [disabled]="isLoading"
-                  (click)="onSacrificePassenger('evadir_ataque')">
-            EVADIR PRÓXIMO ATAQUE
-          </button>
-          <button class="action-btn sacrifice-btn" 
-                  [disabled]="isLoading"
-                  (click)="onSacrificePassenger('recuperar_oxigeno')">
-            RECUPERAR OXÍGENO (+3)
-          </button>
-        </div>
       </div>
 
       <!-- Mensaje de resultado -->
