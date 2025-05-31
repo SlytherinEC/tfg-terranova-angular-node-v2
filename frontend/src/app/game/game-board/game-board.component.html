@@ -29,40 +29,84 @@
 
   <div class="game-content">
     <div class="game-board">
-      <!-- Reemplazado el viejo mapa con el nuevo HexMapComponent -->
-      <app-hex-map *ngIf="gameState.mapa && gameState.mapa.length > 0" [mapa]="gameState.mapa"
-        [posicionActual]="gameState.posicion_actual" [codigosActivacion]="gameState.codigos_activacion"
-        (cellClick)="onCellClick($event)"></app-hex-map>
+      <!-- Mostrar mapa hexagonal cuando NO hay combate activo -->
+      <app-hex-map *ngIf="!gameState.encuentro_actual && gameState.mapa && gameState.mapa.length > 0" 
+        [mapa]="gameState.mapa"
+        [posicionActual]="gameState.posicion_actual" 
+        [codigosActivacion]="gameState.codigos_activacion"
+        [adyacencias]="gameState.adyacencias" 
+        (cellClick)="onCellClick($event)" 
+        (invalidMove)="onInvalidMove($event)">
+      </app-hex-map>
 
-      <div *ngIf="!gameState.mapa || gameState.mapa.length === 0" class="empty-map-message">
+      <!-- Mostrar componente de combate cuando HAY combate activo Y NO hay encounter resolver -->
+      <app-encounter *ngIf="gameState.encuentro_actual && !showEncounterResolver" 
+        #encounterComponent 
+        [encounter]="gameState.encuentro_actual" 
+        [weapons]="gameState.armas || []"
+        [canSacrifice]="gameState.pasajeros > 0" 
+        [isLoading]="isLoading" 
+        [combatResult]="combatMessage"
+        [diceResult]="currentDiceResult" 
+        [combatState]="gameState.combate_actual" 
+        [pasajeros]="gameState.pasajeros"
+        [estres]="gameState.capitan.estres" 
+        [items]="gameState.mochila || []"
+        (weaponSelected)="resolverCombate($event)" 
+        (escape)="sacrificarPasajero('escapar_encuentro')"
+        (selectWeaponInAdvancedCombat)="onSeleccionarArmaAvanzado($event)"
+        (rollDiceInAdvancedCombat)="onLanzarDadosAvanzado()"
+        (useStressInAdvancedCombat)="onUsarEstresAvanzado($event)"
+        (continueAdvancedCombat)="onContinuarCombateAvanzado()"
+        (useItemInAdvancedCombat)="onUsarItemAvanzado($event)"
+        (sacrificePassengerInAdvancedCombat)="onSacrificarPasajeroAvanzado($event)"
+        (advanceToStressPhase)="onAvanzarAUsoEstres()"
+        (sacrificePassengerInteractive)="sacrificarPasajero($event)">
+      </app-encounter>
+
+      <!-- Mensaje cuando no hay mapa cargado -->
+      <div *ngIf="!gameState.encuentro_actual && (!gameState.mapa || gameState.mapa.length === 0)" class="empty-map-message">
         Cargando mapa...
       </div>
     </div>
 
     <div class="game-sidebar">
-      <div class="sidebar-section">
-        <h3 class="section-title">CÓDIGOS</h3>
-        <div class="codes-container">
-          <div class="code-slot" *ngFor="let _ of [].constructor(6); let i = index"
-            [class.filled]="i < (gameState.codigos_activacion || 0)"></div>
-        </div>
-      </div>
+      <!-- Contenedor horizontal para códigos y pasajeros -->
+      <div class="sidebar-section codes-passengers-section">
+        <div class="codes-passengers-container">
+          <!-- Sección de códigos -->
+          <div class="codes-section">
+            <h3 class="section-title">CÓDIGOS</h3>
+            <div class="codes-grid">
+              <div class="code-slot" *ngFor="let _ of [].constructor(6); let i = index"
+                [class.filled]="i < (gameState.codigos_activacion || 0)"></div>
+            </div>
+          </div>
 
-      <div class="sidebar-section">
-        <h3 class="section-title">PASAJEROS</h3>
-        <div class="passengers-container">
-          <div class="passenger" *ngFor="let _ of [].constructor(gameState.pasajeros || 0)"></div>
+          <!-- Sección de pasajeros -->
+          <div class="passengers-section">
+            <h3 class="section-title">PASAJEROS</h3>
+            <div class="passengers-grid">
+              <div class="passenger-slot" *ngFor="let _ of [].constructor(6); let i = index"
+                [class.filled]="i < (gameState.pasajeros || 0)">
+                <span *ngIf="i < (gameState.pasajeros || 0)" class="passenger-icon">👤</span>
+              </div>
+            </div>
+          </div>
         </div>
+        
+        <!-- Botones de acción para pasajeros -->
         <div class="action-buttons" *ngIf="gameState.pasajeros > 0">
           <button class="game-button" (click)="sacrificarPasajero('escapar_encuentro')"
-            [disabled]="!gameState.encuentro_actual">
+            [disabled]="isLoading">
             Sacrificar para escapar
           </button>
           <button class="game-button" (click)="sacrificarPasajero('evadir_ataque')"
-            [disabled]="!gameState.encuentro_actual">
+            [disabled]="isLoading">
             Sacrificar para evadir ataque
           </button>
-          <button class="game-button" (click)="sacrificarPasajero('recuperar_oxigeno')">
+          <button class="game-button" (click)="sacrificarPasajero('recuperar_oxigeno')"
+            [disabled]="isLoading">
             Sacrificar para recuperar O2
           </button>
         </div>
@@ -70,10 +114,11 @@
 
       <!-- Agregar el componente de gestión de estrés dentro del sidebar -->
       <div class="sidebar-section">
-        <app-stress-manager [estresActual]="gameState.capitan.estres" [estresMaximo]="10"
-          [dados]="gameState.ultimo_combate?.dados || []" [isInCombat]="!!gameState.encuentro_actual"
-          [traje]="gameState.capitan.traje" [trajeMaximo]="6" [isDisabled]="isLoading"
-          (usarEstres)="onUsarEstres($event)">
+        <app-stress-manager [currentStress]="gameState.capitan.estres" [maxStress]="3"
+          [diceRollData]="gameState.combate_actual?.datos_lanzamiento ?? null"
+          [canUseStress]="gameState.combate_actual?.puede_usar_estres || false"
+          [isLoading]="isLoading"
+          (stressAction)="onUsarEstres($event)">
         </app-stress-manager>
       </div>
 
@@ -93,7 +138,7 @@
             </div>
             <button class="use-weapon" *ngIf="gameState.encuentro_actual"
               [disabled]="arma.municion !== null && arma.municion <= 0 || isLoading"
-              (click)="resolverCombate(arma.nombre)">
+              (click)="seleccionarArmaEnCombate(arma.nombre)">
               USAR
             </button>
           </div>
@@ -144,13 +189,31 @@
     </div>
   </div>
 
-  <!-- Panel de combate -->
-  <div class="modal-overlay" *ngIf="showEncounter">
-    <app-encounter [encounter]="gameState.encuentro_actual" [weapons]="gameState.armas || []"
-      [canSacrifice]="gameState.pasajeros > 0" [isLoading]="isLoading" [combatResult]="combatMessage"
-      [diceResult]="currentDiceResult" (weaponSelected)="resolverCombate($event)"
-      (escape)="sacrificarPasajero('escapar_encuentro')">
-    </app-encounter>
+  <!-- Modal para revisitar habitaciones -->
+  <div class="modal-overlay" *ngIf="showRevisit">
+    <div class="modal-content">
+      <app-revisit-resolver #revisitResolver [isLoading]="isLoading" (rollDice)="onRollRevisitDice()"
+        (acceptResult)="onAcceptRevisitResult()">
+      </app-revisit-resolver>
+    </div>
+  </div>
+
+  <!-- Modal para resolver encuentros -->
+  <div class="modal-overlay" *ngIf="showEncounterResolver">
+    <div class="modal-content">
+      <app-encounter-resolver #encounterResolver [isLoading]="isLoading" (rollDice)="onRollEncounterDice()"
+        (acceptResult)="onAcceptEncounterResult()">
+      </app-encounter-resolver>
+    </div>
+  </div>
+
+  <!-- Modal para sacrificio de pasajeros -->
+  <div class="modal-overlay" *ngIf="showSacrifice">
+    <div class="modal-content">
+      <app-sacrifice-resolver #sacrificeResolver [isLoading]="isLoading" [sacrificeAction]="sacrificeAction"
+        (rollDice)="onRollSacrificeDice()" (acceptResult)="onAcceptSacrificeResult()">
+      </app-sacrifice-resolver>
+    </div>
   </div>
 
   <!-- Panel de evento -->
@@ -207,10 +270,15 @@
   </div>
 
   <!-- Mensaje de error o información -->
-  <div class="message-popup" *ngIf="mensaje" (click)="mensaje = null">
+  <!-- <div class="message-popup" *ngIf="mensaje" (click)="mensaje = null">
     {{mensaje}}
     <div class="close-text">Toca para cerrar</div>
-  </div>
+  </div> -->
+
+  <!-- Modal informativo para mensajes de error/información - DEBE ESTAR AL FINAL -->
+  <app-info-modal [show]="showInfoModal" [title]="infoModalTitle" [message]="infoModalMessage"
+    (close)="onCloseInfoModal()">
+  </app-info-modal>
 
   <!-- Botones de control -->
   <div class="game-controls">

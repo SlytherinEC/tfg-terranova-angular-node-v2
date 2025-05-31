@@ -1,12 +1,23 @@
 // Tablas de datos del juego
+
+// ARMAS COMPLETAS SEGÚN ESPECIFICACIONES
+const ARMAS = {
+  'Palanca': { nombre: 'Palanca', danio: 1, precision: 1, municion: null, municion_max: null },
+  'Pistola de Plasma': { nombre: 'Pistola de Plasma', danio: 2, precision: 3, municion: 4, municion_max: 4 },
+  'Aguijón': { nombre: 'Aguijón', danio: 3, precision: 2, municion: 3, municion_max: 3 },
+  'Pistola Laser': { nombre: 'Pistola Laser', danio: 3, precision: 3, municion: 2, municion_max: 2 },
+  'Blaster': { nombre: 'Blaster', danio: 4, precision: 2, municion: 2, municion_max: 2 }
+};
+
+// ALIENS COMPLETOS CON INFORMACIÓN DE SACRIFICIO
 const ALIENS = {
-  arana: { nombre: 'Araña', danio: 1, objetivo: 3, pg: 1 },
-  arana_monstruosa: { nombre: 'Araña Monstruosa', danio: 2, objetivo: 4, pg: 3 },
-  sabueso: { nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 2 },
-  sabueso_rabioso: { nombre: 'Sabueso Rabioso', danio: 4, objetivo: 7, pg: 6 },
-  rastreador: { nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 4 },
-  reina: { nombre: 'Reina', danio: 3, objetivo: 8, pg: 8 },
-  reina_negra: { nombre: 'Reina Negra', danio: 4, objetivo: 9, pg: 10 }
+  arana: { nombre: 'Araña', danio: 1, objetivo: 3, pg: 1, sacrificio_requerido: 1 },
+  arana_monstruosa: { nombre: 'Araña Monstruosa', danio: 2, objetivo: 4, pg: 3, sacrificio_requerido: 1 },
+  sabueso: { nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 2, sacrificio_requerido: 1 },
+  sabueso_rabioso: { nombre: 'Sabueso Rabioso', danio: 4, objetivo: 7, pg: 6, sacrificio_requerido: 2 },
+  rastreador: { nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 4, sacrificio_requerido: 1 },
+  reina: { nombre: 'Reina', danio: 3, objetivo: 8, pg: 8, sacrificio_requerido: 2 },
+  reina_negra: { nombre: 'Reina Negra', danio: 4, objetivo: 9, pg: 10, sacrificio_requerido: 3 }
 };
 
 const ITEMS = [
@@ -16,6 +27,22 @@ const ITEMS = [
   { nombre: 'Munición', efecto: 'Recarga 2 municiones de un arma', usos: 1 },
   { nombre: 'Tanque de O2', efecto: 'Recupera 3 puntos de oxígeno', usos: 1 }
 ];
+
+// Constantes de dificultad para armas disponibles
+const ARMAS_POR_DIFICULTAD = {
+  'MUY_FACIL': ['Palanca', 'Pistola de Plasma', 'Aguijón', 'Pistola Laser', 'Blaster'],
+  'NORMAL': ['Palanca', 'Pistola de Plasma', 'Aguijón', 'Pistola Laser'],
+  'DIFICIL': ['Palanca', 'Pistola de Plasma', 'Aguijón'],
+  'LOCURA': ['Palanca', 'Pistola de Plasma']
+};
+
+// Configuración inicial por dificultad
+const CONFIG_DIFICULTAD = {
+  'MUY_FACIL': { traje_inicial: 5, estres_inicial: 0 },
+  'NORMAL': { traje_inicial: 4, estres_inicial: 1 },
+  'DIFICIL': { traje_inicial: 3, estres_inicial: 2 },
+  'LOCURA': { traje_inicial: 2, estres_inicial: 3 }
+};
 
 // Tablas de exploración
 const TABLA_EXPLORACION = [
@@ -47,7 +74,511 @@ function sumarDados(dados) {
   return dados.reduce((sum, value) => sum + value, 0);
 }
 
+// NUEVAS FUNCIONES PARA COMBATE AVANZADO
 
+// Inicializar combate avanzado
+function iniciarCombateAvanzado(partida, tipoAlien) {
+  const alien = ALIENS[tipoAlien];
+  if (!alien) {
+    throw new Error(`Tipo de alien no válido: ${tipoAlien}`);
+  }
+
+  const combateState = {
+    fase: 'preparacion',
+    turno: 1,
+    acciones_disponibles: generarAccionesDisponibles(partida, 'preparacion'),
+    historial: [],
+    alien_pg_inicial: alien.pg,
+    puede_usar_estres: partida.capitan.estres < 3
+  };
+
+  partida.combate_actual = combateState;
+  partida.encuentro_actual = {
+    alien: tipoAlien,
+    pg: alien.pg,
+    alienData: alien
+  };
+
+  return {
+    exito: true,
+    combate_estado: combateState,
+    mensaje: `¡Combate iniciado contra ${alien.nombre}!`,
+    partida
+  };
+}
+
+// Generar acciones disponibles según la fase
+function generarAccionesDisponibles(partida, fase) {
+  const acciones = [];
+
+  switch (fase) {
+    case 'preparacion':
+      // Usar ítems pre-combate
+      if (partida.mochila.length > 0) {
+        acciones.push({
+          tipo: 'usar_item',
+          disponible: true,
+          descripcion: 'Usar ítem antes del combate'
+        });
+      }
+      
+      // Sacrificar pasajero para escapar
+      if (partida.pasajeros > 0) {
+        acciones.push({
+          tipo: 'sacrificar_pasajero',
+          disponible: true,
+          descripcion: 'Sacrificar pasajero para escapar',
+          parametros: { accion: 'escapar_encuentro' }
+        });
+      }
+
+      // Continuar al combate
+      acciones.push({
+        tipo: 'continuar',
+        disponible: true,
+        descripcion: 'Comenzar combate'
+      });
+      break;
+
+    case 'seleccion_arma':
+      // Seleccionar arma con munición
+      partida.armas.forEach(arma => {
+        if (arma.nombre === 'Palanca' || arma.municion > 0) {
+          acciones.push({
+            tipo: 'seleccionar_arma',
+            disponible: true,
+            descripcion: `Usar ${arma.nombre} (${arma.municion === null ? '∞' : arma.municion} munición)`,
+            parametros: { arma: arma.nombre }
+          });
+        }
+      });
+      break;
+
+    case 'lanzamiento':
+      // Si ya hay datos de lanzamiento, permitir continuar a fase de estrés
+      if (partida.combate_actual.datos_lanzamiento) {
+        acciones.push({
+          tipo: 'continuar',
+          disponible: true,
+          descripcion: 'Continuar al uso de estrés'
+        });
+      } else {
+        // Si no hay datos, mostrar opción de lanzar dados
+        acciones.push({
+          tipo: 'lanzar_dados',
+          disponible: true,
+          descripcion: 'Lanzar dados de ataque'
+        });
+      }
+      break;
+
+    case 'uso_estres':
+      if (partida.capitan.estres < 3 && partida.combate_actual.datos_lanzamiento) {
+        // Alterar resultado de dados
+        acciones.push({
+          tipo: 'usar_estres',
+          disponible: true,
+          descripcion: 'Alterar resultado de dado (+1 o -1)',
+          costo: 1,
+          parametros: { accion: 'alterar_resultado' }
+        });
+
+        // Volver a tirar dados
+        acciones.push({
+          tipo: 'usar_estres',
+          disponible: true,
+          descripcion: 'Volver a tirar un dado',
+          costo: 1,
+          parametros: { accion: 'volver_a_tirar' }
+        });
+
+        // Reparar traje
+        acciones.push({
+          tipo: 'usar_estres',
+          disponible: true,
+          descripcion: 'Reparar traje (+1 punto)',
+          costo: 1,
+          parametros: { accion: 'reparar_traje' }
+        });
+      }
+
+      // Continuar sin usar estrés
+      acciones.push({
+        tipo: 'continuar',
+        disponible: true,
+        descripcion: 'Continuar sin usar estrés'
+      });
+      break;
+
+    case 'resultado':
+      // Usar ítems durante combate
+      if (partida.mochila.length > 0) {
+        acciones.push({
+          tipo: 'usar_item',
+          disponible: true,
+          descripcion: 'Usar ítem'
+        });
+      }
+
+      // Sacrificar pasajero para evadir
+      if (partida.pasajeros > 0 && partida.encuentro_actual && partida.encuentro_actual.pg > 0) {
+        acciones.push({
+          tipo: 'sacrificar_pasajero',
+          disponible: true,
+          descripcion: 'Sacrificar pasajero para evadir ataque',
+          parametros: { accion: 'evadir_ataque' }
+        });
+      }
+
+      // Continuar turno
+      acciones.push({
+        tipo: 'continuar',
+        disponible: true,
+        descripcion: 'Continuar'
+      });
+      break;
+  }
+
+  return acciones;
+}
+
+// Procesar selección de arma
+function procesarSeleccionArma(partida, nombreArma) {
+  const arma = partida.armas.find(a => a.nombre === nombreArma);
+  if (!arma) {
+    return {
+      exito: false,
+      mensaje: 'Arma no encontrada'
+    };
+  }
+
+  // Verificar munición (Palanca tiene munición ilimitada)
+  if (arma.nombre !== 'Palanca' && arma.municion <= 0) {
+    return {
+      exito: false,
+      mensaje: 'El arma no tiene munición'
+    };
+  }
+
+  // Consumir munición
+  if (arma.nombre !== 'Palanca') {
+    arma.municion -= 1;
+  }
+
+  // Guardar el arma seleccionada pero NO lanzar dados aún
+  partida.combate_actual.arma_seleccionada = { ...arma };
+  partida.combate_actual.fase = 'lanzamiento';
+  partida.combate_actual.acciones_disponibles = [
+    {
+      tipo: 'lanzar_dados',
+      disponible: true,
+      descripcion: 'Lanzar dados de ataque'
+    }
+  ];
+
+  // Agregar entrada al historial
+  partida.combate_actual.historial.push({
+    turno: partida.combate_actual.turno,
+    accion: `Arma seleccionada: ${arma.nombre}`,
+    resultado: `Preparado para atacar con ${arma.nombre}`
+  });
+
+  return {
+    exito: true,
+    mensaje: `Has seleccionado ${arma.nombre}. ¡Presiona el botón para lanzar los dados!`,
+    combate_estado: partida.combate_actual,
+    partida
+  };
+}
+
+// Lanzar dados en combate
+function lanzarDadosEnCombate(partida) {
+  if (!partida.combate_actual || partida.combate_actual.fase !== 'lanzamiento') {
+    return {
+      exito: false,
+      mensaje: 'No se puede lanzar dados en esta fase del combate'
+    };
+  }
+
+  const arma = partida.combate_actual.arma_seleccionada;
+  if (!arma) {
+    return {
+      exito: false,
+      mensaje: 'No hay arma seleccionada'
+    };
+  }
+
+  // Aplicar bonus de precisión temporal si existe
+  const precisionFinal = arma.precision + (partida.bonus_precision_temporal || 0);
+  partida.bonus_precision_temporal = 0; // Consumir el bonus
+
+  // Tirar dados
+  const dados = tirarDados(precisionFinal);
+  const suma = sumarDados(dados);
+  const alien = partida.encuentro_actual.alienData;
+
+  // Guardar datos del lanzamiento
+  const datosLanzamiento = {
+    dados: [...dados], // Copia de los dados originales
+    suma: suma,
+    objetivo: alien.objetivo,
+    exito: suma >= alien.objetivo,
+    arma_usada: { ...arma }
+  };
+
+  partida.combate_actual.datos_lanzamiento = datosLanzamiento;
+  
+  // MANTENER EN FASE DE LANZAMIENTO después de tirar dados
+  // La fase solo debe cambiar cuando el frontend lo solicite explícitamente
+  partida.combate_actual.fase = 'lanzamiento';
+  partida.combate_actual.acciones_disponibles = generarAccionesDisponibles(partida, 'lanzamiento');
+
+  // Agregar entrada al historial
+  partida.combate_actual.historial.push({
+    turno: partida.combate_actual.turno,
+    accion: `Ataque con ${arma.nombre}`,
+    resultado: `Tirada: ${dados.join(' + ')} = ${suma} (Objetivo: ${alien.objetivo})`,
+    dados: [...dados]
+  });
+
+  return {
+    exito: true,
+    mensaje: `Has lanzado ${dados.join(' + ')} = ${suma}. Objetivo: ${alien.objetivo}`,
+    dados: dados,
+    combate_estado: partida.combate_actual,
+    partida
+  };
+}
+
+// Usar estrés en combate
+function usarEstresEnCombate(partida, accion, parametros = {}) {
+  if (partida.capitan.estres >= 3) {
+    return {
+      exito: false,
+      mensaje: 'No puedes usar más estrés (máximo 3 puntos)'
+    };
+  }
+
+  if (!partida.combate_actual || !partida.combate_actual.datos_lanzamiento) {
+    return {
+      exito: false,
+      mensaje: 'No hay datos de lanzamiento para modificar'
+    };
+  }
+
+  const datos = partida.combate_actual.datos_lanzamiento;
+  let mensaje = '';
+
+  switch (accion) {
+    case 'alterar_resultado':
+      const { indice_dado, modificacion } = parametros;
+      if (indice_dado < 0 || indice_dado >= datos.dados.length) {
+        return {
+          exito: false,
+          mensaje: 'Índice de dado no válido'
+        };
+      }
+
+      const valorOriginal = datos.dados[indice_dado];
+      const valorNuevo = Math.max(1, Math.min(6, valorOriginal + modificacion));
+      
+      if (!datos.dados_modificados) datos.dados_modificados = [];
+      datos.dados_modificados.push({
+        indice: indice_dado,
+        valor_original: valorOriginal,
+        valor_nuevo: valorNuevo
+      });
+
+      datos.dados[indice_dado] = valorNuevo;
+      datos.suma = sumarDados(datos.dados);
+      datos.exito = datos.suma >= datos.objetivo;
+
+      mensaje = `Dado modificado: ${valorOriginal} → ${valorNuevo}. Nueva suma: ${datos.suma}`;
+      break;
+
+    case 'volver_a_tirar':
+      const indiceDado = parametros.indice_dado;
+      if (indiceDado < 0 || indiceDado >= datos.dados.length) {
+        return {
+          exito: false,
+          mensaje: 'Índice de dado no válido'
+        };
+      }
+
+      const valorAnt = datos.dados[indiceDado];
+      const nuevoValor = tirarDado();
+      
+      if (!datos.dados_relanzados) datos.dados_relanzados = [];
+      datos.dados_relanzados.push({
+        indice: indiceDado,
+        valor_original: valorAnt,
+        valor_nuevo: nuevoValor
+      });
+
+      datos.dados[indiceDado] = nuevoValor;
+      datos.suma = sumarDados(datos.dados);
+      datos.exito = datos.suma >= datos.objetivo;
+
+      mensaje = `Dado relanzado: ${valorAnt} → ${nuevoValor}. Nueva suma: ${datos.suma}`;
+      break;
+
+    case 'reparar_traje':
+      partida.capitan.traje += 1;
+      mensaje = 'Has reparado 1 punto de traje usando estrés';
+      break;
+
+    default:
+      return {
+        exito: false,
+        mensaje: 'Acción de estrés no válida'
+      };
+  }
+
+  // Incrementar estrés
+  partida.capitan.estres += 1;
+
+  // Agregar al historial
+  partida.combate_actual.historial.push({
+    turno: partida.combate_actual.turno,
+    accion: `Usar estrés: ${accion}`,
+    resultado: mensaje
+  });
+
+  return {
+    exito: true,
+    mensaje: mensaje,
+    dados_modificados: datos.dados,
+    estres_restante: 3 - partida.capitan.estres,
+    combate_estado: partida.combate_actual,
+    partida
+  };
+}
+
+// Continuar combate después de acciones de estrés
+function continuarCombate(partida) {
+  if (!partida.combate_actual || !partida.combate_actual.datos_lanzamiento) {
+    return {
+      exito: false,
+      mensaje: 'No hay combate activo'
+    };
+  }
+
+  const datos = partida.combate_actual.datos_lanzamiento;
+  const alien = partida.encuentro_actual.alienData;
+  let mensaje = '';
+
+  // Aplicar resultado del ataque
+  if (datos.exito) {
+    const danio = datos.arma_usada.danio;
+    partida.encuentro_actual.pg -= danio;
+    mensaje += `¡Impacto! Has causado ${danio} puntos de daño. `;
+
+    // Agregar al historial
+    partida.combate_actual.historial.push({
+      turno: partida.combate_actual.turno,
+      accion: 'Resultado del ataque',
+      resultado: `Impacto exitoso`,
+      danio_causado: danio
+    });
+
+    // Verificar si el alien fue derrotado
+    if (partida.encuentro_actual.pg <= 0) {
+      return finalizarCombateVictorioso(partida);
+    }
+  } else {
+    mensaje += 'Fallaste el disparo. ';
+    partida.combate_actual.historial.push({
+      turno: partida.combate_actual.turno,
+      accion: 'Resultado del ataque',
+      resultado: 'Ataque fallido'
+    });
+  }
+
+  // Turno del alien
+  return procesarTurnoAlien(partida, mensaje);
+}
+
+// Procesar turno del alien
+function procesarTurnoAlien(partida, mensajeAnterior = '') {
+  let mensaje = mensajeAnterior;
+  const alien = partida.encuentro_actual.alienData;
+
+  // Verificar si hay evasión por sacrificio de pasajero
+  if (partida.evadir_proximo_ataque) {
+    mensaje += `El pasajero evita el ataque del ${alien.nombre} esta vez.`;
+    partida.evadir_proximo_ataque = false;
+    
+    partida.combate_actual.historial.push({
+      turno: partida.combate_actual.turno,
+      accion: 'Turno del alien',
+      resultado: 'Ataque evadido por sacrificio de pasajero'
+    });
+  } else {
+    // Aplicar daño del alien
+    const danioAlien = alien.danio;
+    partida.capitan.traje -= danioAlien;
+    mensaje += `El ${alien.nombre} te ha atacado causando ${danioAlien} puntos de daño a tu traje.`;
+
+    partida.combate_actual.historial.push({
+      turno: partida.combate_actual.turno,
+      accion: 'Turno del alien',
+      resultado: `${alien.nombre} ataca`,
+      danio_recibido: danioAlien
+    });
+
+    // Verificar derrota
+    if (partida.capitan.traje <= 0) {
+      return finalizarCombateDerrota(partida, alien);
+    }
+  }
+
+  // Preparar siguiente turno
+  partida.combate_actual.turno += 1;
+  partida.combate_actual.fase = 'seleccion_arma';
+  partida.combate_actual.datos_lanzamiento = null;
+  partida.combate_actual.acciones_disponibles = generarAccionesDisponibles(partida, 'seleccion_arma');
+
+  return {
+    exito: true,
+    mensaje: mensaje,
+    combate_estado: partida.combate_actual,
+    partida,
+    puede_continuar: true
+  };
+}
+
+// Finalizar combate victorioso
+function finalizarCombateVictorioso(partida) {
+  const alien = partida.encuentro_actual.alienData;
+  
+  // Actualizar contadores de aliens derrotados
+  if (!partida.aliens_derrotados) {
+    partida.aliens_derrotados = {};
+  }
+  if (!partida.aliens_derrotados[partida.encuentro_actual.alien]) {
+    partida.aliens_derrotados[partida.encuentro_actual.alien] = 0;
+  }
+  partida.aliens_derrotados[partida.encuentro_actual.alien] += 1;
+
+  // Actualizar logros
+  actualizarLogrosAlienDerrotado(partida, partida.encuentro_actual.alien);
+
+  // Limpiar estado de combate
+  partida.combate_actual = null;
+  partida.encuentro_actual = null;
+
+  return {
+    exito: true,
+    victoria: true,
+    mensaje: `¡Has derrotado al ${alien.nombre}!`,
+    partida
+  };
+}
+
+// Finalizar combate por derrota
+function finalizarCombateDerrota(partida, alien) {
+  return finalizarPartida(partida, 'DERROTA', `Tu traje ha sido destruido por el ${alien.nombre}. Fin del juego.`);
+}
 
 // Servicio principal del juego
 const GameService = {
@@ -598,6 +1129,276 @@ const GameService = {
       partida
     };
   },
+
+  // NUEVOS MÉTODOS PARA COMBATE AVANZADO
+
+  // Iniciar combate avanzado
+  iniciarCombateAvanzado: (partida, tipoAlien) => {
+    return iniciarCombateAvanzado(partida, tipoAlien);
+  },
+
+  // Seleccionar arma en combate
+  seleccionarArmaEnCombate: (partida, nombreArma) => {
+    if (!partida.combate_actual || partida.combate_actual.fase !== 'seleccion_arma') {
+      return {
+        exito: false,
+        mensaje: 'No puedes seleccionar arma en esta fase del combate'
+      };
+    }
+
+    return procesarSeleccionArma(partida, nombreArma);
+  },
+
+  // Lanzar dados en combate
+  lanzarDadosEnCombate: (partida) => {
+    return lanzarDadosEnCombate(partida);
+  },
+
+  // Generar acciones disponibles para el frontend
+  generarAccionesDisponibles: (partida, fase) => {
+    return generarAccionesDisponibles(partida, fase);
+  },
+
+  // Usar estrés en combate
+  usarEstresEnCombate: (partida, accion, parametros = {}) => {
+    if (!partida.combate_actual || partida.combate_actual.fase !== 'uso_estres') {
+      return {
+        exito: false,
+        mensaje: 'No puedes usar estrés en esta fase del combate'
+      };
+    }
+
+    return usarEstresEnCombate(partida, accion, parametros);
+  },
+
+  // Continuar combate
+  continuarCombate: (partida) => {
+    if (!partida.combate_actual) {
+      return {
+        exito: false,
+        mensaje: 'No hay combate activo'
+      };
+    }
+
+    switch (partida.combate_actual.fase) {
+      case 'preparacion':
+        partida.combate_actual.fase = 'seleccion_arma';
+        partida.combate_actual.acciones_disponibles = generarAccionesDisponibles(partida, 'seleccion_arma');
+        return {
+          exito: true,
+          mensaje: 'Combate iniciado. Selecciona un arma.',
+          combate_estado: partida.combate_actual,
+          partida
+        };
+
+      case 'uso_estres':
+        return continuarCombate(partida);
+
+      case 'resultado':
+        return procesarTurnoAlien(partida);
+
+      default:
+        return {
+          exito: false,
+          mensaje: 'No se puede continuar desde esta fase'
+        };
+    }
+  },
+
+  // Usar ítem en combate avanzado
+  usarItemEnCombateAvanzado: (partida, indiceItem) => {
+    if (!partida.combate_actual) {
+      return {
+        exito: false,
+        mensaje: 'No hay combate activo'
+      };
+    }
+
+    const resultado = usarItemEnCombate(partida, indiceItem);
+    
+    if (resultado.exito && partida.combate_actual) {
+      // Actualizar acciones disponibles después de usar ítem
+      partida.combate_actual.acciones_disponibles = generarAccionesDisponibles(partida, partida.combate_actual.fase);
+    }
+
+    return {
+      ...resultado,
+      combate_estado: partida.combate_actual
+    };
+  },
+
+  // Sacrificar pasajero en combate avanzado
+  sacrificarPasajeroEnCombateAvanzado: (partida, accion) => {
+    if (!partida.combate_actual) {
+      return {
+        exito: false,
+        mensaje: 'No hay combate activo'
+      };
+    }
+
+    const resultado = GameService.sacrificarPasajero(partida, accion);
+    
+    if (resultado.exito && accion === 'escapar_encuentro') {
+      // Finalizar combate si escapó exitosamente
+      partida.combate_actual = null;
+    } else if (partida.combate_actual) {
+      // Actualizar acciones disponibles
+      partida.combate_actual.acciones_disponibles = generarAccionesDisponibles(partida, partida.combate_actual.fase);
+    }
+
+    return {
+      ...resultado,
+      combate_estado: partida.combate_actual
+    };
+  },
+
+  // Obtener estado del combate
+  obtenerEstadoCombate: (partida) => {
+    if (!partida.combate_actual) {
+      return {
+        exito: false,
+        mensaje: 'No hay combate activo'
+      };
+    }
+
+    return {
+      exito: true,
+      combate_estado: partida.combate_actual,
+      encuentro: partida.encuentro_actual,
+      partida
+    };
+  },
+
+  // Finalizar combate manualmente (para testing)
+  finalizarCombate: (partida) => {
+    partida.combate_actual = null;
+    partida.encuentro_actual = null;
+    
+    return {
+      exito: true,
+      mensaje: 'Combate finalizado',
+      partida
+    };
+  },
+
+  // MÉTODOS HEREDADOS DEL SISTEMA ANTERIOR (para compatibilidad)
+
+  // Usar estrés (método anterior para compatibilidad)
+  usarEstres: (partida, accion, indiceDado) => {
+    if (!partida.ultimo_combate) {
+      return {
+        exito: false,
+        mensaje: 'No hay combate reciente para usar estrés'
+      };
+    }
+
+    if (partida.capitan.estres >= 3) {
+      return {
+        exito: false,
+        mensaje: 'No puedes usar más estrés (máximo 3 puntos)'
+      };
+    }
+
+    let mensaje = '';
+    const ultimoCombate = partida.ultimo_combate;
+
+    switch (accion) {
+      case 'alterar_resultado':
+        if (indiceDado < 0 || indiceDado >= ultimoCombate.dados.length) {
+          return {
+            exito: false,
+            mensaje: 'Índice de dado no válido'
+          };
+        }
+
+        const valorOriginal = ultimoCombate.dados[indiceDado];
+        const modificacion = valorOriginal >= 6 ? -1 : (valorOriginal <= 1 ? 1 : (Math.random() > 0.5 ? 1 : -1));
+        const valorNuevo = Math.max(1, Math.min(6, valorOriginal + modificacion));
+        
+        ultimoCombate.dados[indiceDado] = valorNuevo;
+        ultimoCombate.suma = sumarDados(ultimoCombate.dados);
+
+        mensaje = `Dado modificado: ${valorOriginal} → ${valorNuevo}. Nueva suma: ${ultimoCombate.suma}`;
+        break;
+
+      case 'volver_a_tirar':
+        if (indiceDado < 0 || indiceDado >= ultimoCombate.dados.length) {
+          return {
+            exito: false,
+            mensaje: 'Índice de dado no válido'
+          };
+        }
+
+        const valorAnterior = ultimoCombate.dados[indiceDado];
+        const nuevoValor = tirarDado();
+        ultimoCombate.dados[indiceDado] = nuevoValor;
+        ultimoCombate.suma = sumarDados(ultimoCombate.dados);
+
+        mensaje = `Dado relanzado: ${valorAnterior} → ${nuevoValor}. Nueva suma: ${ultimoCombate.suma}`;
+        break;
+
+      case 'reparar_traje':
+        partida.capitan.traje += 1;
+        mensaje = 'Has reparado 1 punto de traje usando estrés';
+        break;
+
+      default:
+        return {
+          exito: false,
+          mensaje: 'Acción de estrés no válida'
+        };
+    }
+
+    // Incrementar estrés
+    partida.capitan.estres += 1;
+
+    return {
+      exito: true,
+      mensaje: mensaje,
+      dados_modificados: ultimoCombate.dados,
+      suma_final: ultimoCombate.suma,
+      estres_restante: 3 - partida.capitan.estres,
+      partida
+    };
+  },
+
+  // Método para obtener información de armas disponibles según dificultad
+  obtenerArmasDisponibles: (dificultad) => {
+    const armasDisponibles = ARMAS_POR_DIFICULTAD[dificultad] || ARMAS_POR_DIFICULTAD['NORMAL'];
+    return armasDisponibles.map(nombre => ({
+      ...ARMAS[nombre]
+    }));
+  },
+
+  // Método para obtener configuración de dificultad
+  obtenerConfigDificultad: (dificultad) => {
+    return CONFIG_DIFICULTAD[dificultad] || CONFIG_DIFICULTAD['NORMAL'];
+  },
+
+  // Método para obtener información de aliens
+  obtenerInfoAlien: (tipoAlien) => {
+    return ALIENS[tipoAlien] || null;
+  },
+
+  // Método para obtener logros de combate
+  obtenerLogrosCombate: (partida) => {
+    const aliens = partida.aliens_derrotados || {};
+    const logros = {};
+
+    // Logros por cantidad de aliens derrotados
+    logros.ARACNOFOBICO = (aliens.arana || 0) >= 10;
+    logros.CAZADOR = (aliens.sabueso || 0) >= 8;
+    logros.RASTREADOR = (aliens.rastreador || 0) >= 6;
+    logros.GUERRERO = (aliens.reina || 0) >= 4;
+    logros.EXTERMINADOR = (aliens.arana_monstruosa || 0) >= 1;
+    logros.DOMADOR = (aliens.sabueso_rabioso || 0) >= 1;
+    logros.OSCURIDAD = (aliens.reina_negra || 0) >= 1;
+    
+    // Logro de pacificador
+    logros.PACIFICADOR = (partida.pasajeros_sacrificados || 0) === 0 && partida.estado === 'VICTORIA';
+
+    return logros;
+  }
 };
 
 // Función para obtener las celdas adyacentes en un mapa hexagonal
@@ -731,11 +1532,11 @@ function revisitarHabitacion(partida, celda) {
   const resultado = tirarDado();
 
   if (resultado <= 2) {
-    // Encuentro con alien
+    // 1-2: Encuentro con alien
     return iniciarEncuentroAleatorio(partida);
   }
-  else if (resultado <= 4) {
-    // Habitación vacía, reduce estrés
+  else if (resultado <= 5) {
+    // 3-5: Habitación vacía, reduce estrés
     partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
     return {
       exito: true,
@@ -747,7 +1548,7 @@ function revisitarHabitacion(partida, celda) {
     };
   }
   else {
-    // Encuentras un pasajero
+    // 6: Encuentras un pasajero
     partida.pasajeros += 1;
     return {
       exito: true,

@@ -38,6 +38,19 @@ const Usuario = {
     }
   },
 
+  // Obtener todos los usuarios (para ranking)
+  getAll: async () => {
+    try {
+      const [rows] = await db.query(
+        'SELECT id_usuario, nombre, email, id_rol, fecha_registro, image FROM usuarios ORDER BY nombre'
+      );
+      return rows;
+    } catch (err) {
+      console.error('[ERROR] Fallo al obtener todos los usuarios:', err.message);
+      throw err;
+    }
+  },
+
   // Añadir este método al modelo Usuario.js
   actualizarPerfil: async (id_usuario, nombre, email) => {
     try {

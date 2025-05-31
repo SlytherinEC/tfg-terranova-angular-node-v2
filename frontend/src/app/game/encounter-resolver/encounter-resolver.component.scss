@@ -1,0 +1,319 @@
+/* Estilos para el componente de resolución de encuentros */
+.encounter-resolver-container {
+  width: 100%;
+  height: 100%;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  color: #FFD54F;
+  background: linear-gradient(135deg, rgba(10, 25, 47, 0.95) 0%, rgba(26, 122, 122, 0.1) 100%);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.encounter-header {
+  background: linear-gradient(90deg, rgba(26, 122, 122, 0.8) 0%, rgba(10, 25, 47, 0.8) 100%);
+  padding: 0.8rem;
+  text-align: center;
+  border-bottom: 2px solid rgba(26, 122, 122, 0.5);
+}
+
+.encounter-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #FFD54F;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  letter-spacing: 2px;
+}
+
+.encounter-content {
+  display: flex;
+  height: calc(100% - 60px);
+  min-height: 400px;
+}
+
+/* Panel izquierdo - Dado */
+.dice-panel {
+  flex: 1;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(10, 25, 47, 0.8) 0%, rgba(26, 122, 122, 0.2) 100%);
+  border-right: 2px solid rgba(26, 122, 122, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.dice-section {
+  text-align: center;
+  width: 100%;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  color: #26A69A;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  letter-spacing: 1px;
+}
+
+.dice-container {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.roll-button {
+  padding: 1rem 2rem;
+  font-size: 0.8rem;
+  background: linear-gradient(45deg, rgba(244, 67, 54, 0.7) 0%, rgba(183, 28, 28, 0.7) 100%);
+  border: 2px solid #F44336;
+  color: #FFD54F;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(45deg, rgba(244, 67, 54, 0.9) 0%, rgba(183, 28, 28, 0.9) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(244, 67, 54, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Panel derecho - Información */
+.info-panel {
+  flex: 2;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(10, 25, 47, 0.9) 0%, rgba(26, 122, 122, 0.1) 100%);
+  overflow-y: auto;
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+}
+
+.info-message {
+  background: rgba(26, 122, 122, 0.2);
+  border: 2px solid rgba(26, 122, 122, 0.5);
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 400px;
+
+  p {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0;
+    color: #FFD54F;
+  }
+}
+
+.result-section {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.result-title {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #26A69A;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  letter-spacing: 1px;
+}
+
+.alien-image-container {
+  text-align: center;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.alien-image {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 3px solid #F44336;
+  box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+  filter: drop-shadow(0 0 10px rgba(244, 67, 54, 0.3));
+}
+
+.alien-info {
+  background: rgba(10, 25, 47, 0.7);
+  border: 2px solid rgba(26, 122, 122, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.alien-name {
+  text-align: center;
+  font-size: 1rem;
+  color: #26A69A;
+  margin-bottom: 0.8rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.alien-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(26, 122, 122, 0.1);
+  border-radius: 5px;
+  border-left: 3px solid #26A69A;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #FFD54F;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 0.7rem;
+  color: #26A69A;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.7);
+}
+
+
+
+.action-section {
+  text-align: center;
+}
+
+.accept-button {
+  padding: 1rem 2rem;
+  font-size: 0.8rem;
+  background: linear-gradient(45deg, rgba(76, 175, 80, 0.7) 0%, rgba(56, 142, 60, 0.7) 100%);
+  border: 2px solid #4CAF50;
+  color: #FFD54F;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(45deg, rgba(76, 175, 80, 0.9) 0%, rgba(56, 142, 60, 0.9) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Animaciones */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .encounter-content {
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+  }
+
+  .dice-panel {
+    flex: none;
+    border-right: none;
+    border-bottom: 2px solid rgba(26, 122, 122, 0.3);
+    padding: 1rem;
+  }
+
+  .info-panel {
+    flex: none;
+    padding: 1rem;
+  }
+
+  .encounter-title {
+    font-size: 1rem;
+  }
+
+  .alien-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .stat-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.3rem;
+  }
+
+  .stat-label, .stat-value {
+    font-size: 0.6rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .encounter-resolver-container {
+    border-radius: 5px;
+  }
+
+  .dice-panel, .info-panel {
+    padding: 0.8rem;
+  }
+
+  .encounter-title {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+  }
+
+  .section-title {
+    font-size: 0.8rem;
+  }
+
+  .roll-button, .accept-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.7rem;
+  }
+
+  .alien-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  .result-title {
+    font-size: 1rem;
+  }
+
+  .alien-name {
+    font-size: 0.9rem;
+  }
+} 

@@ -66,14 +66,14 @@ const gameController = {
           partida.armas = partida.armas.filter(a => a.nombre !== 'Blaster');
           break;
         case 'DIFICIL':
-          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Laser y Blaster, Pasajeros: 4
+          // Traje: 3 puntos, Estrés: 2 puntos, Armas: excepto Pistola Laser y Blaster, Pasajeros: 4
           partida.capitan.traje = 3;
           partida.capitan.estres = 2;
           partida.armas = partida.armas.filter(a => a.nombre !== 'Pistola Laser' && a.nombre !== 'Blaster');
           partida.pasajeros = 4;
           break;
         case 'LOCURA':
-          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Plasma, Pasajeros: 2
+          // Traje: 2 puntos, Estrés: 3 puntos, Armas: solo Palanca y Pistola de Plasma, Pasajeros: 2
           partida.capitan.traje = 2;
           partida.capitan.estres = 3;
           partida.armas = partida.armas.filter(a => a.nombre === 'Palanca' || a.nombre === 'Pistola de Plasma');
@@ -121,6 +121,13 @@ const gameController = {
       if (partida.id_usuario !== req.usuario.id_usuario) {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
+
+      // NUEVO: Verificar que adyacencias existe
+    if (!partida.adyacencias) {
+      console.error('Partida sin adyacencias definidas:', id_partida);
+      // Si no existe, intentar reconstruirlo (opción avanzada)
+      // O simplemente informar del error
+    }
 
       res.status(200).json(partida);
     } catch (error) {
@@ -693,8 +700,20 @@ const gameController = {
         return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
       }
 
-      // Usar DiceService para tirar el dado
-      const valorDado = DiceService.rollDie(6);
+      // Verificar si hay un encuentro forzado por sacrificio de pasajeros
+      let valorDado;
+      let encuentroForzado = false;
+
+      if (partida.proxima_habitacion_encuentro) {
+        // Forzar encuentro (valor 1 del dado)
+        valorDado = 1;
+        encuentroForzado = true;
+        // Limpiar la bandera
+        partida.proxima_habitacion_encuentro = false;
+      } else {
+        // Usar DiceService para tirar el dado normalmente
+        valorDado = DiceService.rollDie(6);
+      }
 
       // Guardar el resultado temporalmente
       partida.ultimo_dado_exploracion = valorDado;
@@ -707,7 +726,11 @@ const gameController = {
 
       switch (valorDado) {
         case 1:
-          mensaje = 'Habitación infestada: ¡Te encontraste con un alien!';
+          if (encuentroForzado) {
+            mensaje = 'Los gritos del pasajero han atraído a un alien: ¡Te encontraste con una criatura!';
+          } else {
+            mensaje = 'Habitación infestada: ¡Te encontraste con un alien!';
+          }
           tipo = 'encuentro';
           break;
         case 2:
@@ -737,7 +760,8 @@ const gameController = {
         resultado: valorDado,
         mensaje,
         tipo,
-        resultDetails
+        resultDetails,
+        encuentroForzado // Información adicional para el frontend
       });
     } catch (error) {
       console.error('Error al tirar dado de exploración:', error);
@@ -917,31 +941,843 @@ const gameController = {
       res.status(500).json({ mensaje: 'Error al resolver exploración', error: error.message });
     }
   },
+
+  // Método para revisitar celda interactivamente (primera fase: tirar dado)
+  revisitarTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Guardar el resultado temporalmente
+      partida.ultimo_dado_revisita = valorDado;
+      await Partida.updateEstado(id_partida, partida);
+
+      // Preparar mensaje según el valor del dado
+      let mensaje = '';
+      let tipo = '';
+
+      if (valorDado <= 2) {
+        mensaje = 'Encuentro: ¡Hay un alien en esta habitación!';
+        tipo = 'encuentro';
+      } else if (valorDado <= 5) {
+        mensaje = 'Habitación vacía: Te sientes más calmado (-1 Estrés)';
+        tipo = 'habitacion_vacia';
+      } else {
+        mensaje = 'Superviviente: ¡Has encontrado un pasajero!';
+        tipo = 'pasajero';
+      }
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        mensaje,
+        tipo
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de revisita:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de revisita', error: error.message });
+    }
+  },
+
+  // Método para revisitar celda interactivamente (segunda fase: resolver resultado)
+  revisitarResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { coordenadas } = req.body;
+
+      // Validar coordenadas
+      if (!coordenadas || typeof coordenadas.x !== 'number' || typeof coordenadas.y !== 'number') {
+        return res.status(400).json({ mensaje: 'Coordenadas inválidas' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Obtener valor del dado almacenado
+      const valorDado = partida.ultimo_dado_revisita;
+
+      if (!valorDado) {
+        return res.status(400).json({ mensaje: 'Debes tirar el dado primero' });
+      }
+
+      // Actualizar posición actual
+      partida.posicion_actual = { ...coordenadas };
+
+      // Obtener celda actual
+      const celda = partida.mapa[coordenadas.y][coordenadas.x];
+
+      // Consumir oxígeno
+      partida.capitan.oxigeno -= 1;
+      if (partida.capitan.oxigeno <= 0) {
+        return finalizarPartida(partida, 'DERROTA', 'Te has quedado sin oxígeno');
+      }
+
+      // Resolver según el valor del dado
+      let resultado;
+
+      if (valorDado <= 2) {
+        // 1-2: Encuentro con alien
+        const alienAleatorio = obtenerAlienAleatorio();
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'encuentro',
+            mensaje: `¡Te has encontrado con un ${alienAleatorio.nombre}!`,
+            encuentro: {
+              alien: alienAleatorio.tipo,
+              pg: alienAleatorio.pg,
+              alienData: alienAleatorio
+            }
+          }
+        };
+        partida.encuentro_actual = {
+          alien: alienAleatorio.tipo,
+          pg: alienAleatorio.pg
+        };
+      } else if (valorDado <= 5) {
+        // 3-5: Habitación vacía, reduce estrés
+        partida.capitan.estres = Math.max(0, partida.capitan.estres - 1);
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'habitacion_vacia',
+            mensaje: 'La habitación está vacía. Te sientes un poco más calmado (-1 Estrés).'
+          }
+        };
+      } else {
+        // 6: Encuentras un pasajero
+        partida.pasajeros += 1;
+        resultado = {
+          exito: true,
+          resultado: {
+            tipo: 'pasajero',
+            mensaje: '¡Has encontrado un superviviente! Se une a tu grupo.'
+          }
+        };
+      }
+
+      // Limpiar el dado de revisita
+      partida.ultimo_dado_revisita = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      // Añadir la partida actualizada a la respuesta
+      resultado.partida = partida;
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver revisita:', error);
+      res.status(500).json({ mensaje: 'Error al resolver revisita', error: error.message });
+    }
+  },
+
+  // Método para tirar dado de encuentro (primera fase: determinar alien)
+  encuentroTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Obtener alien según el valor del dado
+      const alienData = obtenerAlienPorDado(valorDado);
+
+      // Guardar el resultado temporalmente
+      partida.ultimo_dado_encuentro = valorDado;
+      partida.alien_pendiente = alienData;
+      await Partida.updateEstado(id_partida, partida);
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        alien: alienData,
+        mensaje: `¡Te enfrentas a un ${alienData.nombre}!`
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de encuentro:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de encuentro', error: error.message });
+    }
+  },
+
+  // Método para resolver encuentro (segunda fase: iniciar combate)
+  encuentroResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Obtener alien pendiente
+      const alienData = partida.alien_pendiente;
+
+      if (!alienData) {
+        return res.status(400).json({ mensaje: 'Debes tirar el dado primero' });
+      }
+
+      // Iniciar combate avanzado directamente
+      const resultadoCombate = GameService.iniciarCombateAvanzado(partida, alienData.tipo);
+
+      if (!resultadoCombate.exito) {
+        return res.status(400).json({ mensaje: resultadoCombate.mensaje });
+      }
+
+      // Limpiar datos temporales
+      partida.ultimo_dado_encuentro = null;
+      partida.alien_pendiente = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      const resultado = {
+        exito: true,
+        resultado: {
+          tipo: 'encuentro',
+          mensaje: `¡El combate contra el ${alienData.nombre} ha comenzado!`,
+          encuentro: {
+            alien: alienData.tipo,
+            pg: alienData.pg,
+            alienData: alienData
+          }
+        },
+        combate_estado: resultadoCombate.combate_estado,
+        partida
+      };
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver encuentro:', error);
+      res.status(500).json({ mensaje: 'Error al resolver encuentro', error: error.message });
+    }
+  },
+
+  // NUEVOS ENDPOINTS PARA COMBATE AVANZADO
+
+  // Iniciar combate avanzado
+  iniciarCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { tipo_alien } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.iniciarCombateAvanzado(partida, tipo_alien);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al iniciar combate avanzado:', error);
+      res.status(500).json({ mensaje: 'Error al iniciar combate avanzado', error: error.message });
+    }
+  },
+
+  // Seleccionar arma en combate
+  seleccionarArmaEnCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { nombre_arma } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.seleccionarArmaEnCombate(partida, nombre_arma);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al seleccionar arma en combate:', error);
+      res.status(500).json({ mensaje: 'Error al seleccionar arma en combate', error: error.message });
+    }
+  },
+
+  // Lanzar dados en combate
+  lanzarDadosEnCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.lanzarDadosEnCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al lanzar dados en combate:', error);
+      res.status(500).json({ mensaje: 'Error al lanzar dados en combate', error: error.message });
+    }
+  },
+
+  // Avanzar de fase lanzamiento a uso de estrés
+  avanzarAUsoEstres: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar que esté en fase lanzamiento con dados ya lanzados
+      if (!partida.combate_actual || partida.combate_actual.fase !== 'lanzamiento' || !partida.combate_actual.datos_lanzamiento) {
+        return res.status(400).json({ mensaje: 'No se puede avanzar a uso de estrés desde esta fase' });
+      }
+
+      // Si el estrés ya está al máximo, saltar directamente al resultado
+      if (partida.capitan.estres >= 3) {
+        partida.combate_actual.fase = 'resultado';
+        partida.combate_actual.acciones_disponibles = GameService.generarAccionesDisponibles(partida, 'resultado');
+        
+        await Partida.updateEstado(id_partida, partida);
+        
+        // Procesar directamente el resultado del combate
+        const resultado = GameService.continuarCombate(partida);
+        
+        if (resultado.exito) {
+          await Partida.updateEstado(id_partida, partida);
+        }
+        
+        return res.status(200).json(resultado);
+      } else {
+        // Ir a fase de uso de estrés
+        partida.combate_actual.fase = 'uso_estres';
+        partida.combate_actual.acciones_disponibles = GameService.generarAccionesDisponibles(partida, 'uso_estres');
+
+        await Partida.updateEstado(id_partida, partida);
+
+        res.status(200).json({
+          exito: true,
+          mensaje: 'Avanzando a fase de uso de estrés',
+          combate_estado: partida.combate_actual,
+          partida
+        });
+      }
+    } catch (error) {
+      console.error('Error al avanzar a uso de estrés:', error);
+      res.status(500).json({ mensaje: 'Error al avanzar a uso de estrés', error: error.message });
+    }
+  },
+
+  // Usar estrés en combate
+  usarEstresEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion, parametros } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.usarEstresEnCombate(partida, accion, parametros);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al usar estrés en combate:', error);
+      res.status(500).json({ mensaje: 'Error al usar estrés en combate', error: error.message });
+    }
+  },
+
+  // Continuar combate
+  continuarCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.continuarCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al continuar combate:', error);
+      res.status(500).json({ mensaje: 'Error al continuar combate', error: error.message });
+    }
+  },
+
+  // Usar ítem en combate avanzado
+  usarItemEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { indice_item } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.usarItemEnCombateAvanzado(partida, indice_item);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al usar ítem en combate:', error);
+      res.status(500).json({ mensaje: 'Error al usar ítem en combate', error: error.message });
+    }
+  },
+
+  // Sacrificar pasajero en combate avanzado
+  sacrificarPasajeroEnCombateAvanzado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion } = req.body;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.sacrificarPasajeroEnCombateAvanzado(partida, accion);
+
+      if (resultado.exito || resultado.partida) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al sacrificar pasajero en combate:', error);
+      res.status(500).json({ mensaje: 'Error al sacrificar pasajero en combate', error: error.message });
+    }
+  },
+
+  // Obtener estado del combate
+  obtenerEstadoCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.obtenerEstadoCombate(partida);
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al obtener estado del combate:', error);
+      res.status(500).json({ mensaje: 'Error al obtener estado del combate', error: error.message });
+    }
+  },
+
+  // Finalizar combate
+  finalizarCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const resultado = GameService.finalizarCombate(partida);
+
+      if (resultado.exito) {
+        await Partida.updateEstado(id_partida, partida);
+      }
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al finalizar combate:', error);
+      res.status(500).json({ mensaje: 'Error al finalizar combate', error: error.message });
+    }
+  },
+
+  // Obtener información de armas por dificultad
+  obtenerArmasDisponibles: async (req, res) => {
+    try {
+      const { dificultad } = req.query;
+      const armas = GameService.obtenerArmasDisponibles(dificultad || 'NORMAL');
+      res.status(200).json({ armas });
+    } catch (error) {
+      console.error('Error al obtener armas disponibles:', error);
+      res.status(500).json({ mensaje: 'Error al obtener armas disponibles', error: error.message });
+    }
+  },
+
+  // Obtener información de alien
+  obtenerInfoAlien: async (req, res) => {
+    try {
+      const { tipo_alien } = req.params;
+      const alien = GameService.obtenerInfoAlien(tipo_alien);
+      
+      if (!alien) {
+        return res.status(404).json({ mensaje: 'Tipo de alien no encontrado' });
+      }
+
+      res.status(200).json({ alien });
+    } catch (error) {
+      console.error('Error al obtener información del alien:', error);
+      res.status(500).json({ mensaje: 'Error al obtener información del alien', error: error.message });
+    }
+  },
+
+  // Obtener logros de combate
+  obtenerLogrosCombate: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      const partida = await Partida.getById(id_partida);
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      const logros = GameService.obtenerLogrosCombate(partida);
+      res.status(200).json({ logros });
+    } catch (error) {
+      console.error('Error al obtener logros de combate:', error);
+      res.status(500).json({ mensaje: 'Error al obtener logros de combate', error: error.message });
+    }
+  },
+
+  // Método para sacrificio interactivo (primera fase: tirar dado)
+  sacrificioTirarDado: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+      const { accion } = req.body;
+
+      // Validar acción
+      if (!accion || !['escapar_encuentro', 'evadir_ataque', 'recuperar_oxigeno'].includes(accion)) {
+        return res.status(400).json({ mensaje: 'Acción no válida' });
+      }
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar si tienen pasajeros
+      if (partida.pasajeros <= 0) {
+        return res.status(400).json({ mensaje: 'No tienes pasajeros para sacrificar' });
+      }
+
+      // Usar DiceService para tirar el dado
+      const valorDado = DiceService.rollDie(6);
+
+      // Guardar el resultado temporalmente junto con la acción
+      partida.ultimo_dado_sacrificio = valorDado;
+      partida.accion_sacrificio_pendiente = accion;
+      await Partida.updateEstado(id_partida, partida);
+
+      // Preparar mensaje según el valor del dado
+      let mensaje = '';
+      let tipo = '';
+
+      if (valorDado === 1) {
+        mensaje = 'Te roban munición y huyen - Pierdes 1 munición de cada arma y a este pasajero';
+        tipo = 'robo_municion';
+      } else if (valorDado >= 2 && valorDado <= 4) {
+        mensaje = 'Gritan de miedo y llaman la atención - Pierdes al pasajero y la próxima habitación tendrá un alien';
+        tipo = 'gritan_miedo';
+      } else { // valorDado >= 5
+        // Personalizar mensaje según la acción
+        switch (accion) {
+          case 'escapar_encuentro':
+            mensaje = 'Se convierte en héroe - Te ayuda a escapar del alien';
+            break;
+          case 'evadir_ataque':
+            mensaje = 'Se convierte en héroe - Evita que el alien te ataque este turno';
+            break;
+          case 'recuperar_oxigeno':
+            mensaje = 'Se convierte en héroe - Te entrega su oxígeno (+3 O2)';
+            break;
+        }
+        tipo = 'heroico';
+      }
+
+      res.status(200).json({
+        exito: true,
+        resultado: valorDado,
+        mensaje,
+        tipo,
+        accion
+      });
+    } catch (error) {
+      console.error('Error al tirar dado de sacrificio:', error);
+      res.status(500).json({ mensaje: 'Error al tirar dado de sacrificio', error: error.message });
+    }
+  },
+
+  // Método para sacrificio interactivo (segunda fase: resolver resultado)
+  sacrificioResolver: async (req, res) => {
+    try {
+      const { id_partida } = req.params;
+
+      // Obtener partida
+      const partida = await Partida.getById(id_partida);
+
+      if (!partida) {
+        return res.status(404).json({ mensaje: 'Partida no encontrada' });
+      }
+
+      // Verificar que pertenece al usuario
+      if (partida.id_usuario !== req.usuario.id_usuario) {
+        return res.status(403).json({ mensaje: 'No tienes permiso para acceder a esta partida' });
+      }
+
+      // Verificar que hay un dado de sacrificio pendiente
+      if (!partida.ultimo_dado_sacrificio || !partida.accion_sacrificio_pendiente) {
+        return res.status(400).json({ mensaje: 'No hay sacrificio pendiente para resolver' });
+      }
+
+      const valorDado = partida.ultimo_dado_sacrificio;
+      const accion = partida.accion_sacrificio_pendiente;
+
+      // Aplicar resultado según el valor del dado
+      let resultado;
+
+      // Registrar sacrificio para logros
+      if (!partida.pasajeros_sacrificados) {
+        partida.pasajeros_sacrificados = 0;
+      }
+
+      if (valorDado === 1) {
+        // Te roban munición y huyen
+        let municionRobada = false;
+        partida.armas.forEach(arma => {
+          if (arma.nombre !== 'Palanca' && arma.municion > 0) {
+            arma.municion -= 1;
+            municionRobada = true;
+          }
+        });
+
+        partida.pasajeros -= 1;
+        const mensaje = municionRobada ?
+          'El pasajero te robó munición y huyó' :
+          'El pasajero intentó robarte munición pero no tenías, simplemente huyó';
+
+        resultado = {
+          exito: false,
+          mensaje,
+          reaccion: valorDado,
+          tipo: 'robo_municion'
+        };
+      } else if (valorDado >= 2 && valorDado <= 4) {
+        // Gritan de miedo y llaman la atención
+        partida.pasajeros -= 1;
+        partida.proxima_habitacion_encuentro = true;
+        
+        resultado = {
+          exito: false,
+          mensaje: 'El pasajero gritó de miedo y huyó, atrayendo la atención de los aliens',
+          reaccion: valorDado,
+          tipo: 'gritan_miedo'
+        };
+      } else { // valorDado >= 5
+        // Reacción heroica
+        partida.pasajeros -= 1;
+        partida.pasajeros_sacrificados += 1;
+
+        // Aplicar efecto según la acción solicitada
+        let mensaje = '';
+        switch (accion) {
+          case 'escapar_encuentro':
+            if (partida.encuentro_actual) {
+              partida.encuentro_actual = null;
+              if (partida.combate_actual) {
+                partida.combate_actual = null;
+              }
+              mensaje = 'El pasajero se sacrificó heroicamente, permitiéndote escapar del alien';
+            } else {
+              mensaje = 'El pasajero se sacrificó, pero no había ningún encuentro del que escapar';
+            }
+            break;
+
+          case 'evadir_ataque':
+            if (partida.encuentro_actual) {
+              mensaje = 'El pasajero se interpuso heroicamente, evitando que el alien te ataque en este turno';
+              partida.evadir_proximo_ataque = true;
+            } else {
+              mensaje = 'El pasajero se sacrificó, pero no había ningún ataque que evadir';
+            }
+            break;
+
+          case 'recuperar_oxigeno':
+            partida.capitan.oxigeno = Math.min(10, partida.capitan.oxigeno + 3);
+            mensaje = 'El pasajero te entregó heroicamente su oxígeno, recuperas 3 puntos de O2';
+            break;
+        }
+
+        resultado = {
+          exito: true,
+          mensaje,
+          reaccion: valorDado,
+          tipo: 'heroico'
+        };
+      }
+
+      // Limpiar dados temporales
+      partida.ultimo_dado_sacrificio = null;
+      partida.accion_sacrificio_pendiente = null;
+
+      // Guardar estado actualizado
+      await Partida.updateEstado(id_partida, partida);
+
+      // Añadir la partida actualizada a la respuesta
+      resultado.partida = partida;
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error('Error al resolver sacrificio:', error);
+      res.status(500).json({ mensaje: 'Error al resolver sacrificio', error: error.message });
+    }
+  }
 };
 
-// Helper function
-function obtenerAlienAleatorio() {
+// Helper function - Tabla de encuentros según 1d6
+function obtenerAlienPorDado(valorDado) {
   const aliens = {
-    arana: { tipo: 'arana', nombre: 'Araña', danio: 1, objetivo: 3, pg: 1 },
-    sabueso: { tipo: 'sabueso', nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 2 },
-    rastreador: { tipo: 'rastreador', nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 4 },
-    reina: { tipo: 'reina', nombre: 'Reina', danio: 3, objetivo: 8, pg: 8 }
+    arana: { tipo: 'arana', nombre: 'Araña', danio: 1, objetivo: 3, pg: 2, sacrificio: 1 },
+    sabueso: { tipo: 'sabueso', nombre: 'Sabueso', danio: 2, objetivo: 5, pg: 4, sacrificio: 1 },
+    rastreador: { tipo: 'rastreador', nombre: 'Rastreador', danio: 3, objetivo: 6, pg: 5, sacrificio: 2 },
+    reina: { tipo: 'reina', nombre: 'Reina', danio: 3, objetivo: 8, pg: 8, sacrificio: 3 }
   };
 
-  const rand = Math.random();
+  // Tabla de encuentros según 1d6:
+  // 1: Araña
+  // 2-3: Sabueso  
+  // 4-5: Rastreador
+  // 6: Reina
   let tipoAlien;
-
-  if (rand < 0.4) {
+  if (valorDado === 1) {
     tipoAlien = 'arana';
-  } else if (rand < 0.7) {
+  } else if (valorDado >= 2 && valorDado <= 3) {
     tipoAlien = 'sabueso';
-  } else if (rand < 0.9) {
+  } else if (valorDado >= 4 && valorDado <= 5) {
     tipoAlien = 'rastreador';
-  } else {
+  } else { // valorDado === 6
     tipoAlien = 'reina';
   }
 
   return aliens[tipoAlien];
+}
+
+// Función de compatibilidad para código existente
+function obtenerAlienAleatorio() {
+  const valorDado = Math.floor(Math.random() * 6) + 1;
+  return obtenerAlienPorDado(valorDado);
 }
 
 // Esta función auxiliar debe estar fuera del objeto gameController,

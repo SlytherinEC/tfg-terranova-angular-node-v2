@@ -35,4 +35,33 @@ router.post('/partidas/:id_partida/resolver-armeria', gameController.resolverArm
 router.post('/partidas/:id_partida/explorar-tirar-dado', gameController.explorarTirarDado);
 router.post('/partidas/:id_partida/explorar-resolver', gameController.explorarResolver);
 
+// Rutas para la revisita interactiva
+router.post('/partidas/:id_partida/revisitar-tirar-dado', gameController.revisitarTirarDado);
+router.post('/partidas/:id_partida/revisitar-resolver', gameController.revisitarResolver);
+
+// Rutas para encuentros interactivos
+router.post('/partidas/:id_partida/encuentro-tirar-dado', gameController.encuentroTirarDado);
+router.post('/partidas/:id_partida/encuentro-resolver', gameController.encuentroResolver);
+
+// Rutas para sacrificio interactivo de pasajeros
+router.post('/partidas/:id_partida/sacrificio-tirar-dado', gameController.sacrificioTirarDado);
+router.post('/partidas/:id_partida/sacrificio-resolver', gameController.sacrificioResolver);
+
+// NUEVAS RUTAS PARA COMBATE AVANZADO
+router.post('/partidas/:id_partida/combate-avanzado/iniciar', gameController.iniciarCombateAvanzado);
+router.post('/partidas/:id_partida/combate-avanzado/seleccionar-arma', gameController.seleccionarArmaEnCombate);
+router.post('/partidas/:id_partida/combate-avanzado/lanzar-dados', gameController.lanzarDadosEnCombate);
+router.post('/partidas/:id_partida/combate-avanzado/avanzar-uso-estres', gameController.avanzarAUsoEstres);
+router.post('/partidas/:id_partida/combate-avanzado/usar-estres', gameController.usarEstresEnCombateAvanzado);
+router.post('/partidas/:id_partida/combate-avanzado/continuar', gameController.continuarCombateAvanzado);
+router.post('/partidas/:id_partida/combate-avanzado/usar-item', gameController.usarItemEnCombateAvanzado);
+router.post('/partidas/:id_partida/combate-avanzado/sacrificar-pasajero', gameController.sacrificarPasajeroEnCombateAvanzado);
+router.get('/partidas/:id_partida/combate-avanzado/estado', gameController.obtenerEstadoCombate);
+router.post('/partidas/:id_partida/combate-avanzado/finalizar', gameController.finalizarCombate);
+
+// Rutas de información de combate
+router.get('/armas', gameController.obtenerArmasDisponibles);
+router.get('/aliens/:tipo_alien', gameController.obtenerInfoAlien);
+router.get('/partidas/:id_partida/logros-combate', gameController.obtenerLogrosCombate);
+
 module.exports = router;

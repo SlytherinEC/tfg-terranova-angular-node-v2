@@ -105,6 +105,21 @@ const Partida = {
     }
   },
 
+  // Obtener partidas completas de un usuario (para calcular logros en ranking)
+  getByUsuarioCompleto: async (id_usuario) => {
+    try {
+      const [rows] = await db.query(
+        'SELECT estado_juego FROM partidas WHERE id_usuario = ?',
+        [id_usuario]
+      );
+
+      return rows.map(partida => JSON.parse(partida.estado_juego));
+    } catch (err) {
+      console.error('[ERROR] Fallo al obtener partidas completas del usuario:', err.message);
+      throw err;
+    }
+  },
+
   // Actualizar estado de la partida
   updateEstado: async (id_partida, nuevoEstado) => {
     try {

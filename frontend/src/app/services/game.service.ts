@@ -93,7 +93,8 @@ export class GameService {
       { headers: this.authService.obtenerHeadersAuth() }
     ).pipe(
       tap((response: any) => {
-        if (response.exito) {
+        // Actualizar estado tanto en éxito como en falla, ya que el pasajero se pierde de todos modos
+        if (response.partida) {
           this.gameStateSubject.next(response.partida);
         }
       })
@@ -237,6 +238,253 @@ export class GameService {
         console.error('Error al resolver exploración:', error);
         return throwError(() => error);
       })
+    );
+  }
+
+  // Tirar dado para revisita
+  tirarDadoRevisita(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/revisitar-tirar-dado`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de revisita:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver revisita
+  resolverRevisita(idPartida: number, coordenadas: { x: number, y: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/revisitar-resolver`,
+      { coordenadas },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver revisita:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Tirar dado para encuentro
+  tirarDadoEncuentro(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/encuentro-tirar-dado`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de encuentro:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver encuentro
+  resolverEncuentro(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/encuentro-resolver`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver encuentro:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Tirar dado para sacrificio de pasajeros
+  tirarDadoSacrificio(idPartida: number, accion: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/sacrificio-tirar-dado`, 
+      { accion }, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al tirar dado de sacrificio:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Resolver sacrificio de pasajeros
+  resolverSacrificio(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/sacrificio-resolver`, {}, {
+      headers: this.authService.obtenerHeadersAuth()
+    }).pipe(
+      tap((response: any) => {
+        // Actualizar estado tanto en éxito como en falla, ya que el pasajero se pierde de todos modos
+        if (response.partida) {
+          this.gameStateSubject.next(response.partida);
+        }
+      }),
+      catchError(error => {
+        console.error('Error al resolver sacrificio:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // NUEVOS MÉTODOS PARA COMBATE AVANZADO
+
+  // Iniciar combate avanzado
+  iniciarCombateAvanzado(idPartida: number, tipoAlien: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/iniciar`,
+      { tipo_alien: tipoAlien },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Seleccionar arma en combate
+  seleccionarArmaEnCombate(idPartida: number, nombreArma: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/seleccionar-arma`,
+      { nombre_arma: nombreArma },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Lanzar dados en combate
+  lanzarDadosEnCombate(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/lanzar-dados`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Avanzar de fase lanzamiento a uso de estrés
+  avanzarAUsoEstres(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/avanzar-uso-estres`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Usar estrés en combate avanzado
+  usarEstresEnCombateAvanzado(idPartida: number, accion: string, parametros?: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/usar-estres`,
+      { accion, parametros },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Continuar combate
+  continuarCombateAvanzado(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/continuar`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Usar ítem en combate avanzado
+  usarItemEnCombateAvanzado(idPartida: number, indiceItem: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/usar-item`,
+      { indice_item: indiceItem },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Sacrificar pasajero en combate avanzado
+  sacrificarPasajeroEnCombateAvanzado(idPartida: number, accion: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/sacrificar-pasajero`,
+      { accion },
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Obtener estado del combate
+  obtenerEstadoCombate(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/estado`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Finalizar combate
+  finalizarCombate(idPartida: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/partidas/${idPartida}/combate-avanzado/finalizar`,
+      {},
+      { headers: this.authService.obtenerHeadersAuth() }
+    ).pipe(
+      tap((response: any) => {
+        if (response.exito) {
+          this.gameStateSubject.next(response.partida);
+        }
+      })
+    );
+  }
+
+  // Obtener armas disponibles por dificultad
+  obtenerArmasDisponibles(dificultad?: string): Observable<any> {
+    const params = dificultad ? `?dificultad=${dificultad}` : '';
+    return this.http.get(`${this.apiUrl}/armas${params}`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Obtener información de alien
+  obtenerInfoAlien(tipoAlien: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/aliens/${tipoAlien}`,
+      { headers: this.authService.obtenerHeadersAuth() }
+    );
+  }
+
+  // Obtener logros de combate
+  obtenerLogrosCombateAvanzado(idPartida: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/partidas/${idPartida}/logros-combate`,
+      { headers: this.authService.obtenerHeadersAuth() }
     );
   }
 }

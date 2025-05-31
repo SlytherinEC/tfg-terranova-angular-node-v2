@@ -1,0 +1,79 @@
+<div class="encounter-resolver-container">
+  <div class="encounter-header">
+    <h2 class="encounter-title">DETERMINANDO ENCUENTRO</h2>
+  </div>
+
+  <div class="encounter-content">
+    <!-- Panel izquierdo: Dado -->
+    <div class="dice-panel">
+      <div class="dice-section">
+        <h3 class="section-title">DADO DE ENCUENTRO</h3>
+        <div class="dice-container">
+          <app-dice #diceRef></app-dice>
+        </div>
+        <button 
+          class="roll-button" 
+          (click)="onRollDice()" 
+          [disabled]="isLoading || showAcceptButton">
+          {{isLoading ? 'TIRANDO...' : 'TIRAR DADO'}}
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel derecho: Información -->
+    <div class="info-panel">
+      <!-- Mensaje inicial -->
+      <div class="info-section" *ngIf="!diceResult">
+        <div class="info-message">
+          <p>{{infoMessage}}</p>
+        </div>
+      </div>
+
+      <!-- Resultado del encuentro -->
+      <div class="result-section" *ngIf="diceResult && alienData">
+        <h3 class="result-title">¡ALIEN DETECTADO!</h3>
+        
+        <!-- Imagen del alien -->
+        <div class="alien-image-container">
+          <img [src]="getAlienImage()" [alt]="alienData.nombre" class="alien-image">
+        </div>
+
+        <!-- Información del alien -->
+        <div class="alien-info">
+          <h4 class="alien-name">{{alienData.nombre}}</h4>
+          
+          <div class="alien-stats">
+            <div class="stat-row">
+              <span class="stat-label">💚 Puntos de Golpe:</span>
+              <span class="stat-value">{{alienData.pg}}</span>
+            </div>
+            
+            <div class="stat-row">
+              <span class="stat-label">⚔️ Daño:</span>
+              <span class="stat-value">{{alienData.danio}}</span>
+            </div>
+            
+            <div class="stat-row">
+              <span class="stat-label">🎯 Objetivo:</span>
+              <span class="stat-value">{{alienData.objetivo}}+</span>
+            </div>
+            
+            <div class="stat-row">
+              <span class="stat-label">👥 Sacrificio para escapar:</span>
+              <span class="stat-value">{{getSacrificioText()}}</span>
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Botón de aceptar -->
+        <div class="action-section" *ngIf="showAcceptButton">
+          <button class="accept-button" (click)="onAcceptResult()" [disabled]="isLoading">
+            INICIAR COMBATE
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { DiceComponent } from '../../dice/dice.component';
 
 @Component({
-  selector: 'app-explorable-resolver',
+  selector: 'app-revisit-resolver',
   standalone: true,
   imports: [CommonModule, DiceComponent],
-  templateUrl: './explorable-resolver.component.html',
-  styleUrl: './explorable-resolver.component.scss'
+  templateUrl: './revisit-resolver.component.html',
+  styleUrl: './revisit-resolver.component.scss'
 })
-export class ExplorableResolverComponent {
+export class RevisitResolverComponent {
   @Input() isLoading: boolean = false;
   @Output() rollDice = new EventEmitter<void>();
   @Output() acceptResult = new EventEmitter<void>();
@@ -22,7 +22,7 @@ export class ExplorableResolverComponent {
   resultDetails: any = null;
 
   // Panel inicial con mensaje de instrucción
-  infoMessage: string = 'Tira el dado para resolver la habitación';
+  infoMessage: string = 'Tira el dado para revisitar la habitación';
   showAcceptButton: boolean = false;
 
   onRollDice(): void {
@@ -52,21 +52,24 @@ export class ExplorableResolverComponent {
   getDiceResultDescription(): string {
     if (!this.diceResult) return '';
 
-    switch (this.diceResult) {
-      case 1:
-        return 'Habitación infestada: ¡Te encontraste con un alien!';
-      case 2:
-        return 'Bahía de carga infestada: ¡Has encontrado un ítem pero hay un alien!';
-      case 3:
-        return 'Control infestado: ¡Has encontrado un código de activación pero hay un alien!';
-      case 4:
-        return 'Control: Has encontrado un código de activación';
-      case 5:
-        return 'Armería: Selecciona una opción para mejorar tu equipo';
-      case 6:
-        return 'Seguridad: Has encontrado un pasajero y te sientes más tranquilo (-Estrés)';
-      default:
-        return '';
+    if (this.diceResult <= 2) {
+      return 'Encuentro: ¡Hay un alien en esta habitación!';
+    } else if (this.diceResult <= 5) {
+      return 'Habitación vacía: Te sientes más calmado (-1 Estrés)';
+    } else {
+      return 'Superviviente: ¡Has encontrado un pasajero!';
     }
   }
-}
+
+  getResultIcon(): string {
+    if (!this.diceResult) return '';
+
+    if (this.diceResult <= 2) {
+      return '👾'; // Alien
+    } else if (this.diceResult <= 5) {
+      return '🔹'; // Icono más pixelart para calmado/estrés reducido
+    } else {
+      return '👤'; // Pasajero
+    }
+  }
+} 
