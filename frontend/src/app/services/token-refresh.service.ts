@@ -16,7 +16,8 @@ export class TokenRefreshService implements OnDestroy {
   private refreshingTokenSubject = new BehaviorSubject<boolean>(false);
 
   constructor(private router: Router) {
-    this.iniciarMonitoreoInactividad();
+    // No iniciar el monitoreo automáticamente
+    // this.iniciarMonitoreoInactividad();
   }
 
   actualizarActividad(): void {
@@ -40,15 +41,48 @@ export class TokenRefreshService implements OnDestroy {
     return this.refreshingTokenSubject.asObservable();
   }
 
+  // Método público para iniciar el monitoreo cuando el usuario se loga
+  iniciarMonitoreo(): void {
+    if (this.inactivityTimer) {
+      return; // Ya está iniciado
+    }
+    
+    this.ultimaActividad = Date.now(); // Resetear actividad
+    this.iniciarMonitoreoInactividad();
+    console.log('[TokenRefreshService] Monitoreo de inactividad iniciado');
+  }
+
+  // Método público para detener el monitoreo cuando el usuario se desloga
+  detenerMonitoreo(): void {
+    if (this.inactivityTimer) {
+      clearInterval(this.inactivityTimer);
+      this.inactivityTimer = null;
+      console.log('[TokenRefreshService] Monitoreo de inactividad detenido');
+    }
+  }
+
   private iniciarMonitoreoInactividad(): void {
     // Revisar cada minuto si el usuario está inactivo
     this.inactivityTimer = setInterval(() => {
+      // Verificar si aún hay tokens válidos antes de verificar inactividad
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!token && !refreshToken) {
+        // No hay tokens, detener monitoreo
+        this.detenerMonitoreo();
+        return;
+      }
+
       if (!this.hayActividadReciente()) {
         console.log('[TokenRefreshService] Usuario inactivo detectado');
         
         // Limpiar tokens del localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        
+        // Detener monitoreo
+        this.detenerMonitoreo();
         
         // Redirigir al login
         this.router.navigate(['/login'], { 
@@ -64,8 +98,6 @@ export class TokenRefreshService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.inactivityTimer) {
-      clearInterval(this.inactivityTimer);
-    }
+    this.detenerMonitoreo();
   }
 }

@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AuthService } from '../services/auth.service';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { TokenRefreshService } from '../services/token-refresh.service';
 
 @Component({
   selector: 'app-login',
@@ -15,7 +16,12 @@ export class LoginComponent {
   loginForm: FormGroup;
   errorMessage: String | null = null;
 
-  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
+  constructor(
+    private fb: FormBuilder, 
+    private authService: AuthService, 
+    private router: Router,
+    private tokenRefreshService: TokenRefreshService
+  ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       contrasena: ['', [Validators.required]]
@@ -34,6 +40,11 @@ export class LoginComponent {
       next: (res) => {
         this.authService.guardarToken(res.accessToken);
         this.authService.guardarRefreshToken(res.refreshToken);
+        
+        // Iniciar monitoreo de tokens y actividad después del login exitoso
+        this.authService.iniciarVerificacionTokens();
+        this.tokenRefreshService.iniciarMonitoreo();
+        
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {

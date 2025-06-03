@@ -18,8 +18,8 @@ export class AuthService {
     private http: HttpClient,
     private router: Router
   ) {
-    // Iniciar verificación periódica de tokens
-    this.iniciarVerificacionTokens();
+    // No iniciar verificación automáticamente al instanciar el servicio
+    // this.iniciarVerificacionTokens();
   }
 
   // Métodos para registrar un nuevo usuario
@@ -84,6 +84,9 @@ export class AuthService {
 
   // Método para cerrar sesión. Elimina el token de localStorage
   cerrarSesion(): void {
+    // Detener verificación de tokens
+    this.detenerVerificacionTokens();
+    
     // localStorage.removeItem('token');
     // localStorage.removeItem('refreshToken');
     localStorage.clear(); // solo si no guardas otras cosas
@@ -135,22 +138,45 @@ export class AuthService {
 
   // Método para verificar la validez de los tokens
   verificarTokens(): void {
+    // Solo verificar si hay tokens que verificar
+    const token = this.obtenerToken();
+    const refreshToken = this.obtenerRefreshToken();
+    
+    if (!token && !refreshToken) {
+      // No hay tokens, detener verificación
+      this.detenerVerificacionTokens();
+      return;
+    }
+    
     if (!this.estaAutenticado()) {
       this.cerrarSesion();
     }
   }
 
-  // Iniciar verificación periódica de tokens
-  private iniciarVerificacionTokens(): void {
-    // Verificar tokens cada 30 segundos
+  // Método público para iniciar verificación cuando el usuario se loga
+  iniciarVerificacionTokens(): void {
+    if (this.tokenVerificationTimer) {
+      return; // Ya está iniciado
+    }
+    
+    // Iniciar verificación periódica de tokens
     this.tokenVerificationTimer = setInterval(() => {
       this.verificarTokens();
     }, 30000); // 30 segundos
+    
+    console.log('[AuthService] Verificación periódica de tokens iniciada');
+  }
+
+  // Método público para detener verificación cuando el usuario se desloga
+  detenerVerificacionTokens(): void {
+    if (this.tokenVerificationTimer) {
+      clearInterval(this.tokenVerificationTimer);
+      this.tokenVerificationTimer = null;
+      console.log('[AuthService] Verificación periódica de tokens detenida');
+    }
   }
 
   ngOnDestroy(): void {
-    if (this.tokenVerificationTimer) {
-      clearInterval(this.tokenVerificationTimer);
-    }
+    this.detenerVerificacionTokens();
   }
 }
