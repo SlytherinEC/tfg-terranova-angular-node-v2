@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { AuthService } from './auth.service';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface RankingUsuario {
   id_usuario: number;
@@ -27,7 +28,7 @@ export interface RankingResponse {
   providedIn: 'root'
 })
 export class RankingService {
-  private apiUrl = 'http://localhost:4205/api/ranking';
+  private apiUrl = `${environment.apiUrl}/ranking`;
 
   constructor(private http: HttpClient, private authService: AuthService) { }
 

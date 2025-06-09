@@ -5,12 +5,13 @@ import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { HexCell } from '../game/hex-map/hex-map.component';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MapService {
-  private apiUrl = 'http://localhost:4205/api/game/mapas';
+  private apiUrl = `${environment.apiUrl}/game/mapas`;
 
   constructor(
     private http: HttpClient,

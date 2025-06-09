@@ -5,13 +5,14 @@ import { Usuario } from '../usuario';
 import { TokenData } from '../token-data';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private apiUrl = 'http://localhost:4205/api/usuarios';
+  private apiUrl = `${environment.apiUrl}/usuarios`;
   private tokenVerificationTimer: any;
 
   constructor(

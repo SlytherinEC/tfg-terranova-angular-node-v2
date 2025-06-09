@@ -2,13 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameService {
 
-  private apiUrl = 'http://localhost:4205/api/game';
+  private apiUrl = `${environment.apiUrl}/game`;
 
   // Estado del juego actual
   private gameStateSubject = new BehaviorSubject<any>(null);
