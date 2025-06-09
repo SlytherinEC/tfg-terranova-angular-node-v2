@@ -38,7 +38,7 @@
 /backend/dist
 /backend/build
 /backend/.output
-/backend/utils
+/backend/utils/pruebas
 
 # Logs
 /backend/logs
