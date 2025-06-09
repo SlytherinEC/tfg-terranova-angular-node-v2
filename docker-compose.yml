@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Backend de Node.js
+  terranova-backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: terranova_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4205:4205"
+    networks:
+      - mysql_skynet_server_my_network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4205/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend de Angular con nginx
+  terranova-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: terranova_frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    networks:
+      - mysql_skynet_server_my_network
+    depends_on:
+      - terranova-backend
+    environment:
+      - BACKEND_URL=http://terranova-backend:4205
+
+# Usar la red existente donde está MySQL
+networks:
+  mysql_skynet_server_my_network:
+    external: true 
